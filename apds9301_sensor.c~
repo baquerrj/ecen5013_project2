@@ -1,0 +1,25 @@
+/*!
+ * @file	apds9301_sensor.c
+ *
+ * @brief
+ *
+ *  Created on: Apr 15, 2019
+ *      Author: Roberto Baquerizo
+ */
+
+#include "apds9301_sensor.h"
+#include "my_i2c.h"
+
+void apds9301_get_lux( float *lux );
+{
+
+
+uint8_t apds9301_read_control( void );
+
+uint8_t apds9301_read_id( void );
+
+uint16_t apds9301_read_data0( void );
+
+uint16_t apds9301_read_data1( void );
+
+void apds9301_power_on( uint8_t on );
