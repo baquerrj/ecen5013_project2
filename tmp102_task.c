@@ -36,7 +36,7 @@ TimerHandle_t tmp102_timer_handle;
 static void init_1hz( void *params )
 {
 
-    tmp102_timer_handle = xTimerCreate( "TMP102_1Hz", pdMS_TO_TICKS(1000), pdTRUE, (void*)0, tmp102_task_callback );
+    tmp102_timer_handle = xTimerCreate( "TMP102_TASK", pdMS_TO_TICKS(1000), pdTRUE, (void*)0, tmp102_task_callback );
 
     if( tmp102_timer_handle == NULL)
     {
@@ -66,7 +66,7 @@ void tmp102_task_callback( TimerHandle_t timer )
         memcpy( msg_out.msg, "GET_TEMP", sizeof( msg_out.msg ) );
         tmp102_get_temp( &temp );
 
-        msg_out.data.temperature = temp;
+        msg_out.data.float_data = temp;
 
         int i = (int32_t)temp;
         if( HIGH_TEMPERATURE < i )
@@ -91,7 +91,7 @@ uint8_t temp_task_init( void )
 {
     configASSERT( loggerTaskInitDone == 1 );
 
-    if( pdTRUE != xTaskCreate( init_1hz, (const portCHAR *)"TMP102_1Hz", MY_STACK_SIZE, NULL,
+    if( pdTRUE != xTaskCreate( init_1hz, (const portCHAR *)"TMP102_TASK", MY_STACK_SIZE, NULL,
                                  tskIDLE_PRIORITY + PRIO_TMP_TASK, NULL ) )
     {
         return 1;

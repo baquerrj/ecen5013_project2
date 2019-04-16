@@ -42,7 +42,7 @@ void logger_task( void *params )
                 case MSG_GET_TEMP:
                 {
                     printf( "(%s): %s ----- TIME: %t ----- TEMP: %f C\n",
-                            msg_in.src, msg_in.msg, msg_in.tickcount, msg_in.data.temperature );
+                            msg_in.src, msg_in.msg, msg_in.tickcount, msg_in.data.float_data );
                     break;
                 }
                 case MSG_TOGGLE_LED:
@@ -56,6 +56,12 @@ void logger_task( void *params )
                 {
                     printf( "(%s): %s ----- TIME: %t\n",
                             msg_in.src, msg_in.msg, msg_in.tickcount );
+                    break;
+                }
+                case MSG_GET_LUX:
+                {
+                    printf( "(%s): %s ----- TIME: %t ----- LUX: %f\n",
+                            msg_in.src, msg_in.msg, msg_in.tickcount, msg_in.data.float_data );
                     break;
                 }
                 default:
@@ -75,7 +81,7 @@ uint8_t logger_task_init( void )
     g_pLoggerQueue = xQueueCreate(LOGGER_QUEUE_LENGTH, LOGGER_QUEUE_ITEMSIZE);
 
     /* Create the task*/
-    if(xTaskCreate(logger_task, (const portCHAR *)"LoggerTask", MY_STACK_SIZE, NULL,
+    if(xTaskCreate(logger_task, (const portCHAR *)"LOGGER_TASK", MY_STACK_SIZE, NULL,
                        tskIDLE_PRIORITY + PRIO_LOG_TASK, NULL ) != pdTRUE)
     {
         return 1;

@@ -17,6 +17,7 @@ typedef enum
     MSG_GET_TEMP,
     MSG_TEMP_LOW,
     MSG_TEMP_HIGH,
+    MSG_GET_LUX,
     MSG_MAX = -1
 } log_msg_e;
 
@@ -28,7 +29,7 @@ typedef struct
     char msg[25];
     union data
     {
-        float temperature;
+        float float_data;
         uint32_t toggle_count;
     } data;
 } log_msg_t;
