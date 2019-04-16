@@ -26,6 +26,7 @@
 #include "led_task.h"
 #include "tmp102_task.h"
 #include "alert_task.h"
+#include "apds9301_task.h"
 
 uint32_t g_sysClock = CLOCK_FREQ;
 
@@ -59,7 +60,7 @@ int main( void )
     UART0_config( BAUD_115200, g_sysClock );    /* Configure UART0 with Baud Rate 115200 */
 
     I2C2_init();  /* Configure I2C Bus 2 for use with TMP102 sensor */
-
+    //I2C0_init();
 
     if( 0 != logger_task_init() )
     {
@@ -67,21 +68,29 @@ int main( void )
         while(1);
     }
 
+#if 0
     if( 0 != temp_task_init() )
     {
         puts( "ERROR - TEMPERATURE TASK INIT\n" );
         while(1);
     }
 
-    if( 0 != led_task_init() )
-    {
-        puts( "ERROR - LED TASK INIT\n" );
-        while(1);
-    }
-
     if( 0 != alert_task_init() )
     {
         puts( "ERROR - ALERT TASK INIT\n" );
+        while(1);
+    }
+#endif
+
+    if( 0 != apds9301_task_init() )
+    {
+        puts( "ERROR - APDS9301 TASK INIT\n" );
+        while(1);
+    }
+
+    if( 0 != led_task_init() )
+    {
+        puts( "ERROR - LED TASK INIT\n" );
         while(1);
     }
 
