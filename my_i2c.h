@@ -46,7 +46,7 @@ void I2C2_init( void );
  * @param[in]   reg
  * @returns     8-bit data from register
  */
-uint8_t I2C2_read( uint32_t slave_addr, uint8_t reg );
+uint8_t I2C2_read_byte( uint32_t slave_addr, uint8_t reg );
 
 /*! @brief Read from 16-bit register on I2C Bus 2
  *
@@ -78,8 +78,15 @@ void I2C0_init( void );
  * @param[in]   reg
  * @returns     8-bit data from register
  */
-uint8_t I2C0_read( uint32_t slave_addr, uint8_t reg );
+uint8_t I2C0_read_byte( uint32_t slave_addr, uint8_t reg );
 
 
+/*! @brief Read from 16-bit register on I2C Bus 0
+ *
+ * @param[in]   slave_addr
+ * @param[in[   reg
+ * @returns     16-bit data from register
+ */
+uint16_t I2C0_read_word( uint32_t slave_addr, uint8_t reg );
 
 #endif /* MY_I2C_H_ */
