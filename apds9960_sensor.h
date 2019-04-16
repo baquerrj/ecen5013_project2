@@ -41,9 +41,6 @@
  * APDS9960 object, call init(), and call the appropriate functions.
  */
 
-#ifndef APDS9960_SENSOR_H
-#define APDS9960_SENSOR_H
-
 #include <stdint.h>
 
 
@@ -253,7 +250,7 @@ typedef struct gesture_data_type {
  * @return <+DESCRIPTION+>
  * <+DETAILED+>
  */
-uint8_t apds9960_sensor_init( i2c_handle_t *i2c );
+uint8_t apds9960_sensor_init( void );
 
 
 
@@ -276,7 +273,7 @@ uint8_t getMode( void );
  * @return <+DESCRIPTION+>
  * <+DETAILED+>
  */
-uint8_t setMode( uint8_t mode, uint8_t enable );
+void setMode( uint8_t mode, uint8_t enable );
 
 
 /*!
@@ -286,7 +283,7 @@ uint8_t setMode( uint8_t mode, uint8_t enable );
  * @return <+description+>
  * <+detailed+>
  */
-uint8_t enablePower( void );
+void enablePower( void );
 
 /*!
  * @brief
@@ -295,110 +292,211 @@ uint8_t enablePower( void );
  * @return <+description+>
  * <+detailed+>
  */
-uint8_t disablePower( void );
+void disablePower( void );
 
-/* @brief Enable or disable specific sensors */
-uint8_t enableLightSensor( uint8_t interrupts );
-uint8_t disableLightSensor( void );
-uint8_t enableProximitySensor( uint8_t interrupts );
-uint8_t disableProximitySensor( void );
-uint8_t enableGestureSensor( uint8_t interrupts );
-uint8_t disableGestureSensor( void );
+/**
+ * @brief Reads the proximity level as an 8-bit value
+ *
+ * @returns proximity data
+ */
+uint8_t readProximity( void );
 
+/**
+ * @brief Starts the proximity sensor on the APDS-9960
+ *
+ * @param[in] interrupts EXIT_CLEAN to enable hardware external interrupt on proximity
+ * @returns void
+ */
+void enableProximitySensor(uint8_t interrupts);
 
-/* LED drive strength control */
-uint8_t getLEDDrive( void );
-uint8_t setLEDDrive(uint8_t drive);
-uint8_t getGestureLEDDrive( void );
-uint8_t setGestureLEDDrive(uint8_t drive);
+/**
+ * @brief Ends the proximity sensor on the APDS-9960
+ *
+ * @returns void
+ */
+void disableProximitySensor( void );
 
-/* Gain control */
-uint8_t getAmbientLightGain( void );
-uint8_t setAmbientLightGain(uint8_t gain);
+/**
+ * @brief Returns receiver gain for proximity detection
+ *
+ * Value    Gain
+ *   0       1x
+ *   1       2x
+ *   2       4x
+ *   3       8x
+ *
+ * @return the value of the proximity gain. 0xFF on failure.
+ */
 uint8_t getProximityGain( void );
-uint8_t setProximityGain(uint8_t gain);
-uint8_t getGestureGain( void );
-uint8_t setGestureGain(uint8_t gain);
 
-/* Get and set light interrupt thresholds */
-uint8_t getLightIntLowThreshold(uint16_t *threshold);
-uint8_t setLightIntLowThreshold(uint16_t threshold);
-uint8_t getLightIntHighThreshold(uint16_t *threshold);
-uint8_t setLightIntHighThreshold(uint16_t threshold);
+/**
+ * @brief Sets the receiver gain for proximity detection
+ *
+ * Value    Gain
+ *   0       1x
+ *   1       2x
+ *   2       4x
+ *   3       8x
+ *
+ * @param[in] drive the value (0-3) for the gain
+ * @return EXIT_CLEAN if operation successful. EXIT_ERROR otherwise.
+ */
+void setProximityGain( uint8_t drive );
 
-/* Get and set proximity interrupt thresholds */
-uint8_t getProximityIntLowThreshold(uint8_t *threshold);
-uint8_t setProximityIntLowThreshold(uint8_t threshold);
-uint8_t getProximityIntHighThreshold(uint8_t *threshold);
-uint8_t setProximityIntHighThreshold(uint8_t threshold);
+/**
+ * @brief Returns the lower threshold for proximity detection
+ *
+ * @return lower threshold
+ */
+uint8_t getProximityIntLowThreshold( void );
 
-/* Get and set interrupt enables */
-uint8_t getAmbientLightIntEnable( void );
-uint8_t setAmbientLightIntEnable(uint8_t enable);
-uint8_t getProximityIntEnable( void );
-uint8_t setProximityIntEnable(uint8_t enable);
-uint8_t getGestureIntEnable( void );
-uint8_t setGestureIntEnable(uint8_t enable);
+/**
+ * @brief Sets the lower threshold for proximity detection
+ *
+ * @param[in] low threshold value
+ */
+void setProximityIntLowThreshold( uint8_t threshold );
 
-/* Clear interrupts */
-uint8_t clearAmbientLightInt( void );
-uint8_t clearProximityInt( void );
+/**
+ * @brief Returns the high threshold for proximity detection
+ *
+ * @return high threshold
+ */
+uint8_t getProximityIntHighThreshold( void );
 
-/* Ambient light methods */
-uint8_t readAmbientLight(uint16_t *val);
-uint8_t readRedLight(uint16_t *val);
-uint8_t readGreenLight(uint16_t *val);
-uint8_t readBlueLight(uint16_t *val);
-
-/* Proximity methods */
-uint8_t readProximity(uint8_t *val);
-
-/* Gesture methods */
-uint8_t isGestureAvailable( void );
-int readGesture( void );
-
-//private:
-
-/* Gesture processing */
-void resetGestureParameters( void );
-uint8_t processGestureData( void );
-uint8_t decodeGesture( void );
-
-/* Proximity Interrupt Threshold */
-uint8_t getProxIntLowThresh( void );
-uint8_t setProxIntLowThresh(uint8_t threshold);
-uint8_t getProxIntHighThresh( void );
-uint8_t setProxIntHighThresh(uint8_t threshold);
-
-
-/* LED Boost Control */
-uint8_t getLEDBoost( void );
-uint8_t setLEDBoost(uint8_t boost);
-
-
-/* Proximity photodiode select */
-
-uint8_t getProxGainCompEnable( void );
-uint8_t setProxGainCompEnable(uint8_t enable);
+/*!
+ * @brief Gets the current mask for enabled/disabled proximity photodiodes
+ *
+ * 1 = disabled, 0 = enabled
+ * Bit    Photodiode
+ *  3       UP
+ *  2       DOWN
+ *  1       LEFT
+ *  0       RIGHT
+ *
+ * @return Current proximity mask for photodiodes. 0xFF on error.
+ */
 uint8_t getProxPhotoMask( void );
-uint8_t setProxPhotoMask(uint8_t mask);
 
 
-/* Gesture threshold control */
-uint8_t getGestureEnterThresh( void );
-uint8_t setGestureEnterThresh(uint8_t threshold);
-uint8_t getGestureExitThresh( void );
-uint8_t setGestureExitThresh(uint8_t threshold);
+/**
+ * @brief Sets the high threshold for proximity detection
+ *
+ * @param[in] threshold the high proximity threshold
+ * @return EXIT_CLEAN if operation successful. EXIT_ERROR otherwise.
+ */
+void setProximityIntHighThreshold( uint8_t threshold );
+
+/**
+ * @brief Gets if proximity interrupts are enabled or not
+ *
+ * @return 1 if interrupts are enabled, 0 if not. 0xFF on error.
+ */
+uint8_t getProximityIntEnable( void );
 
 
-/* Gesture LED, gain, and time control */
-uint8_t getGestureWaitTime( void );
-uint8_t setGestureWaitTime(uint8_t time);
+/**
+ * @brief Turns proximity interrupts on or off
+ *
+ * @param[in] enable 1 to enable interrupts, 0 to turn them off
+ * @return EXIT_CLEAN if operation successful. EXIT_ERROR otherwise.
+ */
+void setProximityIntEnable( uint8_t enable );
+
+/**
+ * @brief Clears the proximity interrupt
+ *
+ * @returns void
+ */
+void clearProximityInt( void );
 
 
-/* Gesture mode */
-uint8_t getGestureMode( void );
-uint8_t setGestureMode(uint8_t mode);
+/**
+ * @brief Returns LED drive strength for proximity and ALS
+ *
+ * Value    LED Current
+ *   0        100 mA
+ *   1         50 mA
+ *   2         25 mA
+ *   3         12.5 mA
+ *
+ * @return the value of the LED drive strength. 0xFF on failure.
+ */
+uint8_t getLEDDrive( void );
+
+
+
+
+
+/**
+ * @brief Sets the LED drive strength for proximity and ALS
+ *
+ * Value    LED Current
+ *   0        100 mA
+ *   1         50 mA
+ *   2         25 mA
+ *   3         12.5 mA
+ *
+ * @param[in] drive the value (0-3) for the LED drive strength
+ * @returns void
+ */
+void setLEDDrive(uint8_t drive);
+/**
+ * @brief Get the current LED boost value
+ *
+ * Value  Boost Current
+ *   0        100%
+ *   1        150%
+ *   2        200%
+ *   3        300%
+ *
+ * @return The LED boost value. 0xFF on failure.
+ */
+uint8_t getLEDBoost( void );
+
+/**
+ * @brief Sets the LED current boost value
+ *
+ * Value  Boost Current
+ *   0        100%
+ *   1        150%
+ *   2        200%
+ *   3        300%
+ *
+ * @param[in] drive the value (0-3) for current boost (100-300%)
+ * @returns void
+ */
+void setLEDBoost( uint8_t boost );
+
+/**
+ * @brief Gets proximity gain compensation enable
+ *
+ * @return 1 if compensation is enabled. 0 if not. 0xFF on error.
+ */
+uint8_t getProxGainCompEnable( void );
+
+/*!
+ * @brief Sets the proximity gain compensation enable
+ *
+ * @param[in] enable 1 to enable compensation. 0 to disable compensation.
+ * @returns void
+ */
+ void setProxGainCompEnable(uint8_t enable);
+
+
+/*!
+ * @brief Sets the mask for enabling/disabling proximity photodiodes
+ *
+ * 1 = disabled, 0 = enabled
+ * Bit    Photodiode
+ *  3       UP
+ *  2       DOWN
+ *  1       LEFT
+ *  0       RIGHT
+ *
+ * @param[in] mask 4-bit mask value
+ */
+void setProxPhotoMask(uint8_t mask);
 
 /*!
  * Function:       apds9960_read_id
