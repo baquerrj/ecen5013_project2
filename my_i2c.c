@@ -12,6 +12,11 @@
 
 
 #include "my_i2c.h"
+#include "main.h"
+#include <stdbool.h>
+#include "uart.h"
+
+extern uint32_t g_sysClock;
 
 void I2C0_init( void )
 {
@@ -38,14 +43,19 @@ void I2C0_init( void )
     // If false the data rate is set to 100kbps and if true the data rate will
     // be set to 400kbps.
     I2CMasterInitExpClk(I2C0_BASE, SysCtlClockGet(), false);
+    //I2CMasterInitExpClk(I2C0_BASE, CLOCK_FREQ, true);
 
+    I2CTxFIFOFlush(I2C0_BASE);
+    I2CRxFIFOFlush(I2C0_BASE);
     //clear I2C FIFOs
-    HWREG(I2C0_BASE + I2C_O_FIFOCTL) = 80008000;
+    //HWREG(I2C0_BASE + I2C_O_FIFOCTL) = 80008000;
     return;
 }
 
 void I2C2_init( void )
 {
+    SysCtlPeripheralDisable( SYSCTL_PERIPH_I2C2 );
+
     /* Enable I2C Bus 2 */
     SysCtlPeripheralEnable( SYSCTL_PERIPH_I2C2 );
 
@@ -69,9 +79,13 @@ void I2C2_init( void )
     // If false the data rate is set to 100kbps and if true the data rate will
     // be set to 400kbps.
     I2CMasterInitExpClk(I2C2_BASE, SysCtlClockGet(), false);
+    //I2CMasterInitExpClk(I2C2_BASE, CLOCK_FREQ, true);
 
+
+    I2CTxFIFOFlush(I2C2_BASE);
+    I2CRxFIFOFlush(I2C2_BASE);
     //clear I2C FIFOs
-    HWREG(I2C2_BASE + I2C_O_FIFOCTL) = 80008000;
+    //HWREG(I2C2_BASE + I2C_O_FIFOCTL) = 80008000;
     return;
 }
 
@@ -85,7 +99,7 @@ uint8_t I2C0_read_byte(uint32_t slave_addr, uint8_t reg)
     I2CMasterDataPut(I2C0_BASE, reg);
 
     //send control byte and register address byte to slave device
-    I2CMasterControl(I2C0_BASE, I2C_MASTER_CMD_BURST_SEND_START);
+    I2CMasterControl( I2C0_BASE, I2C_MASTER_CMD_SINGLE_SEND );
 
     //wait for MCU to finish transaction
     while(I2CMasterBusy(I2C0_BASE));
@@ -119,7 +133,7 @@ uint8_t I2C2_read_byte(uint32_t slave_addr, uint8_t reg)
     I2CMasterDataPut(I2C2_BASE, reg);
 
     //send control byte and register address byte to slave device
-    I2CMasterControl(I2C2_BASE, I2C_MASTER_CMD_BURST_SEND_START);
+    I2CMasterControl(I2C2_BASE, I2C_MASTER_CMD_SINGLE_SEND);
 
     //wait for MCU to finish transaction
     while(I2CMasterBusy(I2C2_BASE));
@@ -139,6 +153,32 @@ uint8_t I2C2_read_byte(uint32_t slave_addr, uint8_t reg)
 
     //wait for MCU to finish transaction
     while(I2CMasterBusy(I2C2_BASE));
+    uint32_t retVal = I2CMasterErr(I2C2_BASE);
+    switch( retVal )
+    {
+        case I2C_MASTER_ERR_ADDR_ACK:
+        {
+            printf( "I2C_MASTER_ERR_ADDR_ACK\n" );
+            break;
+        }
+        case I2C_MASTER_ERR_DATA_ACK:
+        {
+            printf( "I2C_MASTER_ERR_DATA_ACK\n" );
+            break;
+        }
+        case I2C_MASTER_ERR_ARB_LOST:
+        {
+            printf( "I2C_MASTER_ERR_ARB_LOST\n" );
+            break;
+        }
+        case I2C_MASTER_ERR_NONE:
+        {
+            //printf( "I2C_MASTER_ERR_NONE\n" );
+            break;
+        }
+        default:
+            break;
+    }
 
     return data;
 }
@@ -170,6 +210,7 @@ uint16_t I2C0_read_word( uint32_t slave_addr, uint8_t reg )
     buff[1] = (uint8_t)I2CMasterDataGet( I2C0_BASE );
 
     uint16_t data = (buff[0] << 8) | buff[1];
+
     return data;
 }
 
@@ -200,6 +241,32 @@ uint16_t I2C2_read_word( uint32_t slave_addr, uint8_t reg )
     buff[1] = (uint8_t)I2CMasterDataGet( I2C2_BASE );
 
     uint16_t data = (buff[0] << 8) | buff[1];
+    uint32_t retVal = I2CMasterErr(I2C2_BASE);
+    switch( retVal )
+    {
+        case I2C_MASTER_ERR_ADDR_ACK:
+        {
+            printf( "I2C_MASTER_ERR_ADDR_ACK\n" );
+            break;
+        }
+        case I2C_MASTER_ERR_DATA_ACK:
+        {
+            printf( "I2C_MASTER_ERR_DATA_ACK\n" );
+            break;
+        }
+        case I2C_MASTER_ERR_ARB_LOST:
+        {
+            printf( "I2C_MASTER_ERR_ARB_LOST\n" );
+            break;
+        }
+        case I2C_MASTER_ERR_NONE:
+        {
+            //printf( "I2C_MASTER_ERR_NONE\n" );
+            break;
+        }
+        default:
+            break;
+    }
     return data;
 }
 
@@ -209,6 +276,7 @@ void I2C0_write( uint32_t slave_addr, uint8_t reg, uint8_t data )
     I2CMasterDataPut( I2C0_BASE, reg );
     I2CMasterControl( I2C0_BASE, I2C_MASTER_CMD_BURST_SEND_START );
     while( I2CMasterBusy( I2C0_BASE ) );
+    I2CMasterSlaveAddrSet( I2C0_BASE, slave_addr, false );
 
     I2CMasterDataPut( I2C0_BASE, data );
     I2CMasterControl( I2C0_BASE, I2C_MASTER_CMD_BURST_SEND_FINISH );
@@ -224,11 +292,40 @@ void I2C2_write( uint32_t slave_addr, uint8_t reg, uint8_t data )
     I2CMasterDataPut( I2C2_BASE, reg );
     I2CMasterControl( I2C2_BASE, I2C_MASTER_CMD_BURST_SEND_START );
     while( I2CMasterBusy( I2C2_BASE ) );
+    I2CMasterSlaveAddrSet( I2C2_BASE, slave_addr, false );
 
     I2CMasterDataPut( I2C2_BASE, data );
     I2CMasterControl( I2C2_BASE, I2C_MASTER_CMD_BURST_SEND_FINISH );
 
     while( I2CMasterBusy( I2C2_BASE ) );
+
+    //MAP_SysCtlDelay((g_sysClock / (1000000 * 3))* 1000);
+    uint32_t retVal = I2CMasterErr(I2C2_BASE);
+    switch( retVal )
+    {
+        case I2C_MASTER_ERR_ADDR_ACK:
+        {
+            printf( "I2C_MASTER_ERR_ADDR_ACK\n" );
+            break;
+        }
+        case I2C_MASTER_ERR_DATA_ACK:
+        {
+            printf( "I2C_MASTER_ERR_DATA_ACK\n" );
+            break;
+        }
+        case I2C_MASTER_ERR_ARB_LOST:
+        {
+            printf( "I2C_MASTER_ERR_ARB_LOST\n" );
+            break;
+        }
+        case I2C_MASTER_ERR_NONE:
+        {
+            //printf( "I2C_MASTER_ERR_NONE\n" );
+            break;
+        }
+        default:
+            break;
+    }
     return;
 }
 

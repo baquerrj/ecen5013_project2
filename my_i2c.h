@@ -56,7 +56,6 @@ uint8_t I2C2_read_byte( uint32_t slave_addr, uint8_t reg );
  */
 uint16_t I2C2_read_word( uint32_t slave_addr, uint8_t reg );
 
-
 /*!@ brief Write to register on I2C Bus 2
  *
  * @param[in]   slave_addr
@@ -89,4 +88,11 @@ uint8_t I2C0_read_byte( uint32_t slave_addr, uint8_t reg );
  */
 uint16_t I2C0_read_word( uint32_t slave_addr, uint8_t reg );
 
+/*!@ brief Write to register on I2C Bus 0
+ *
+ * @param[in]   slave_addr
+ * @param[in]   reg
+ * @param[in]   data
+ */
+void I2C0_write( uint32_t slave_addr, uint8_t reg, uint8_t data );
 #endif /* MY_I2C_H_ */
