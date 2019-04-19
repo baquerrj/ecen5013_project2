@@ -27,7 +27,9 @@
 #include "tmp102_task.h"
 #include "alert_task.h"
 #include "apds9301_task.h"
+#include "apds9960_task.h"
 
+#define _APDS_
 uint32_t g_sysClock = CLOCK_FREQ;
 
 //*****************************************************************************
@@ -68,7 +70,20 @@ int main( void )
         while(1);
     }
 
-#if 0
+#ifdef _APDS_
+
+//    if( 0 != apds9301_task_init() )
+//    {
+//        puts( "ERROR - APDS9301 TASK INIT\n" );
+//        while(1);
+//    }
+
+    if( 0 != apds9960_task_init() )
+    {
+        puts( "ERROR - APDS9960 TASK INIT\n" );
+        while(1);
+    }
+#else
     if( 0 != temp_task_init() )
     {
         puts( "ERROR - TEMPERATURE TASK INIT\n" );
@@ -81,13 +96,6 @@ int main( void )
         while(1);
     }
 #endif
-
-    if( 0 != apds9301_task_init() )
-    {
-        puts( "ERROR - APDS9301 TASK INIT\n" );
-        while(1);
-    }
-
     if( 0 != led_task_init() )
     {
         puts( "ERROR - LED TASK INIT\n" );
