@@ -64,6 +64,12 @@ void logger_task( void *params )
                             msg_in.src, msg_in.msg, msg_in.tickcount, msg_in.data.float_data );
                     break;
                 }
+                case MSG_PROXIMITY:
+                {
+                    printf( "(%s): %s ----- TIME: %t ----- PROX: %f\n",
+                            msg_in.src, msg_in.msg, msg_in.tickcount, msg_in.data.float_data );
+                    break;
+                }
                 default:
                     break;
             }
