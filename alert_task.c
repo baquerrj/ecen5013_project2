@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <limits.h>
 
 #include "FreeRTOS.h"
@@ -32,6 +33,7 @@ void alert_task( void *params )
     uint32_t alert_type = 0;
     static log_msg_t msg_out;
     msg_out.src = pcTaskGetTaskName( g_pAlertTaskHandle );
+    msg_out.level = LOG_WARNING;
     while(1)
     {
         /* Wait to be notified of an interrupt */
@@ -45,23 +47,17 @@ void alert_task( void *params )
             if( alert_type & MSG_TEMP_HIGH )
             {
                 msg_out.tickcount = xTaskGetTickCount();
-                msg_out.type = MSG_TEMP_HIGH;
-                memcpy( msg_out.msg, "HIGH TEMP ALERT!", sizeof( msg_out.msg ) );
+                LOG_TASK_MSG( &msg_out, "HIGH TEMP ALERT!" );
             }
             else if( alert_type & MSG_TEMP_LOW )
             {
                 msg_out.tickcount = xTaskGetTickCount();
-                msg_out.type = MSG_TEMP_LOW;
-                memcpy( msg_out.msg, "LOW TEMP ALERT!", sizeof( msg_out.msg ) );
+                LOG_TASK_MSG( &msg_out, "LOW TEMP ALERT!" );
             }
             else
             {
                 puts( "ERROR - ALERT TASK - INVALID ALERT\n" );
                 return;
-            }
-            if( pdPASS != xQueueSend( g_pLoggerQueue, &msg_out, xMaxBlockTime ) )
-            {
-                puts( "ERROR - ALERT TASK - QUEUE SEND\n" );
             }
         }
     }

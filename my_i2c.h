@@ -28,10 +28,9 @@
 #include "driverlib/gpio.h"
 
 #include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
 #include "semphr.h"
 
+xSemaphoreHandle g_I2C2Mutex;
 
 /*! @brief Initialize I2C Bus 2
  *

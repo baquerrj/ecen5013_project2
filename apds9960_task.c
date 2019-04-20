@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "inc/hw_memmap.h"
 #include "driverlib/gpio.h"
@@ -59,7 +60,8 @@ void apds9960_task_callback( TimerHandle_t timer )
     if( apds9960_timer_handle == timer )
     {
         msg_out.tickcount = xTaskGetTickCount();
-        msg_out.type = MSG_PROXIMITY;
+//        msg_out.type = MSG_PROXIMITY;
+        msg_out.level = LOG_INFO;
         memcpy( msg_out.msg, "PROXIMITY", sizeof( msg_out.msg ) );
 
         uint8_t proximity = readProximity();

@@ -66,39 +66,37 @@ int main( void )
 
     if( 0 != logger_task_init() )
     {
-        puts( "ERROR - LOGGER TASK INIT\n" );
+        puts( ERROR " LOGGER TASK INIT\n" );
         while(1);
     }
 
-#ifdef _APDS_
 
-//    if( 0 != apds9301_task_init() )
+    if( 0 != apds9301_task_init() )
+    {
+        puts( ERROR " APDS9301 TASK INIT\n" );
+        while(1);
+    }
+
+//    if( 0 != apds9960_task_init() )
 //    {
-//        puts( "ERROR - APDS9301 TASK INIT\n" );
+//        puts( "ERROR - APDS9960 TASK INIT\n" );
 //        while(1);
 //    }
-
-    if( 0 != apds9960_task_init() )
-    {
-        puts( "ERROR - APDS9960 TASK INIT\n" );
-        while(1);
-    }
-#else
     if( 0 != temp_task_init() )
     {
-        puts( "ERROR - TEMPERATURE TASK INIT\n" );
+        puts( ERROR " TEMPERATURE TASK INIT\n" );
         while(1);
     }
 
     if( 0 != alert_task_init() )
     {
-        puts( "ERROR - ALERT TASK INIT\n" );
+        puts( ERROR " ALERT TASK INIT\n" );
         while(1);
     }
-#endif
+
     if( 0 != led_task_init() )
     {
-        puts( "ERROR - LED TASK INIT\n" );
+        puts( ERROR " LED TASK INIT\n" );
         while(1);
     }
 

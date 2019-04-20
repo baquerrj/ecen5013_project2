@@ -10,13 +10,10 @@
  *      Author: Roberto Baquerizo
  */
 
+#include <stdbool.h>
 
 #include "my_i2c.h"
-#include "main.h"
-#include <stdbool.h>
 #include "uart.h"
-
-extern uint32_t g_sysClock;
 
 void I2C0_init( void )
 {
@@ -84,8 +81,9 @@ void I2C2_init( void )
 
     I2CTxFIFOFlush(I2C2_BASE);
     I2CRxFIFOFlush(I2C2_BASE);
-    //clear I2C FIFOs
-    //HWREG(I2C2_BASE + I2C_O_FIFOCTL) = 80008000;
+
+    /* Create I2C2 access semaphore */
+    g_I2C2Mutex = xSemaphoreCreateMutex();
     return;
 }
 
@@ -125,6 +123,7 @@ uint8_t I2C0_read_byte(uint32_t slave_addr, uint8_t reg)
 
 uint8_t I2C2_read_byte(uint32_t slave_addr, uint8_t reg)
 {
+    xSemaphoreTake( g_I2C2Mutex, portMAX_DELAY );
     //specify that we are writing (a register address) to the
     //slave device
     I2CMasterSlaveAddrSet(I2C2_BASE, slave_addr, false);
@@ -154,6 +153,7 @@ uint8_t I2C2_read_byte(uint32_t slave_addr, uint8_t reg)
     //wait for MCU to finish transaction
     while(I2CMasterBusy(I2C2_BASE));
     uint32_t retVal = I2CMasterErr(I2C2_BASE);
+    xSemaphoreGive( g_I2C2Mutex );
     switch( retVal )
     {
         case I2C_MASTER_ERR_ADDR_ACK:
@@ -216,6 +216,8 @@ uint16_t I2C0_read_word( uint32_t slave_addr, uint8_t reg )
 
 uint16_t I2C2_read_word( uint32_t slave_addr, uint8_t reg )
 {
+    xSemaphoreTake( g_I2C2Mutex, portMAX_DELAY );
+
     uint8_t buff[2] = {0,0};
 
     I2CMasterSlaveAddrSet( I2C2_BASE, slave_addr, false );
@@ -242,6 +244,9 @@ uint16_t I2C2_read_word( uint32_t slave_addr, uint8_t reg )
 
     uint16_t data = (buff[0] << 8) | buff[1];
     uint32_t retVal = I2CMasterErr(I2C2_BASE);
+
+    xSemaphoreGive( g_I2C2Mutex );
+
     switch( retVal )
     {
         case I2C_MASTER_ERR_ADDR_ACK:
@@ -288,6 +293,8 @@ void I2C0_write( uint32_t slave_addr, uint8_t reg, uint8_t data )
 
 void I2C2_write( uint32_t slave_addr, uint8_t reg, uint8_t data )
 {
+    xSemaphoreTake( g_I2C2Mutex, portMAX_DELAY );
+
     I2CMasterSlaveAddrSet( I2C2_BASE, slave_addr, false );
     I2CMasterDataPut( I2C2_BASE, reg );
     I2CMasterControl( I2C2_BASE, I2C_MASTER_CMD_BURST_SEND_START );
@@ -301,6 +308,8 @@ void I2C2_write( uint32_t slave_addr, uint8_t reg, uint8_t data )
 
     //MAP_SysCtlDelay((g_sysClock / (1000000 * 3))* 1000);
     uint32_t retVal = I2CMasterErr(I2C2_BASE);
+
+    xSemaphoreGive( g_I2C2Mutex );
     switch( retVal )
     {
         case I2C_MASTER_ERR_ADDR_ACK:

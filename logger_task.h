@@ -10,6 +10,14 @@
 #ifndef LOGGER_TASK_H_
 #define LOGGER_TASK_H_
 
+//#include "FreeRTOS.h"
+//#include "semphr.h"
+#include "uart.h"
+
+#define INFO    "[INFO]"
+#define ERROR   "[ERROR]"
+#define WARNING "[WARNING]"
+
 typedef enum
 {
     MSG_BEGIN = 0,
@@ -19,13 +27,23 @@ typedef enum
     MSG_TEMP_HIGH,
     MSG_GET_LUX,
     MSG_PROXIMITY,
-    MSG_MAX = -1
+    MSG_MAX
 } log_msg_e;
+
+typedef enum
+{
+    LOG_ERROR,
+    LOG_INFO,
+    LOG_WARNING,
+    LOG_ALL
+} log_level_e;
+
 
 typedef struct
 {
     TickType_t tickcount;
-    log_msg_e type;
+    log_level_e level;
+    //log_msg_e type;
     const char *src;
     char msg[25];
     union data
@@ -35,6 +53,43 @@ typedef struct
     } data;
 } log_msg_t;
 
+extern xSemaphoreHandle g_pUARTMutex;
+
+#define LOG_INFO( p_log ) \
+    do{ \
+        printf( INFO "[%t][%s]: %s\n", (p_log)->tickcount, (p_log)->src, (p_log)->msg ); \
+    }while(0)
+
+#define LOG_ERROR( p_log ) \
+    do{ \
+        printf( ERROR "[%t][%s]: %s\n", (p_log)->tickcount, (p_log)->src, (p_log)->msg ); \
+    }while(0)
+
+#define LOG_WARNING( p_log ) \
+    do{ \
+        printf( WARNING "[%t][%s]: %s\n", (p_log)->tickcount, (p_log)->src, (p_log)->msg ); \
+    }while(0)
+
+
+xSemaphoreHandle g_LoggerMutex;
+
+#define LOG_TASK_MSG( p_log, fmt, ... ) \
+    do{ \
+        xSemaphoreTake( g_LoggerMutex, portMAX_DELAY ); \
+        snprintf( (p_log)->msg, sizeof( (p_log)->msg), fmt, ##__VA_ARGS__); \
+        logger_queue( g_pLoggerQueue, p_log, sizeof( p_log ) ); \
+        xSemaphoreGive( g_LoggerMutex ); \
+    }while(0)
+
+
+/*!
+ * @brief Add logging message to queue
+ *
+ * @param[in]   logger queue handle
+ * @param[in]   message to queue
+ * @param[in]   size of message
+ */
+void logger_queue( QueueHandle_t queue, const log_msg_t *msg_out, size_t size );
 
 /*!
  * @brief Logger Task function

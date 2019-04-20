@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "inc/hw_memmap.h"
 #include "driverlib/gpio.h"
@@ -57,15 +58,13 @@ void tmp102_task_callback( TimerHandle_t timer )
     static log_msg_t msg_out;
     msg_out.src = pcTimerGetTimerName( tmp102_timer_handle );
     float temp = -5.5;
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(500);
     //Timer handle for 1Hz Temperature Sensor task
     if( tmp102_timer_handle == timer )
     {
         msg_out.tickcount = xTaskGetTickCount();
-        msg_out.type = MSG_GET_TEMP;
-        memcpy( msg_out.msg, "GET_TEMP", sizeof( msg_out.msg ) );
-        tmp102_get_temp( &temp );
+        msg_out.level = LOG_INFO;
 
+        tmp102_get_temp( &temp );
         msg_out.data.float_data = temp;
 
         int i = (int32_t)temp;
@@ -79,11 +78,8 @@ void tmp102_task_callback( TimerHandle_t timer )
             /* Notify Alert Task of out-of-range temperature */
             xTaskNotify( g_pAlertTaskHandle, MSG_TEMP_LOW, eSetBits );
         }
-        //Enqueue the worker queue with a new msg
-        if( xQueueSend( g_pLoggerQueue, &msg_out, xMaxBlockTime ) != pdPASS )
-        {
-            puts("ERROR - TMP102 SENSOR TASK - QUEUE SEND\n");
-        }
+
+        LOG_TASK_MSG( &msg_out, "TEMP: %f C", msg_out.data.float_data );
     }
 }
 

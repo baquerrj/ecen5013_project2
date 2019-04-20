@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "inc/hw_memmap.h"
 #include "driverlib/gpio.h"
@@ -55,22 +56,17 @@ void apds9301_task_callback( TimerHandle_t timer )
     static log_msg_t msg_out;
     msg_out.src = pcTimerGetTimerName( apds9301_timer_handle );
     float lux = -5.5;
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(500);
     //Timer handle for 1Hz APDS9301 Sensor task
     if( apds9301_timer_handle == timer )
     {
         msg_out.tickcount = xTaskGetTickCount();
-        msg_out.type = MSG_GET_LUX;
-        memcpy( msg_out.msg, "GET_LUX", sizeof( msg_out.msg ) );
+        msg_out.level = LOG_INFO;
 
         apds9301_get_lux( &lux );
         msg_out.data.float_data = lux;
 
-        //Enqueue the worker queue with a new msg
-        if( xQueueSend( g_pLoggerQueue, &msg_out, xMaxBlockTime ) != pdPASS )
-        {
-            puts("ERROR - APDS9301 SENSOR TASK - QUEUE SEND\n");
-        }
+        LOG_TASK_MSG( &msg_out, "LUX: %f", msg_out.data.float_data );
+
     }
     return;
 }

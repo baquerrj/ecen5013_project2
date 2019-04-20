@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "inc/hw_memmap.h"
 #include "driverlib/gpio.h"
@@ -60,7 +61,6 @@ void led_task_callback( TimerHandle_t timer )
 {
     static log_msg_t msg_out;
     msg_out.src = pcTimerGetTimerName( led_timer_handle );
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(500);
 
     if( led_timer_handle == timer )
     {
@@ -68,9 +68,8 @@ void led_task_callback( TimerHandle_t timer )
         toggle_count++;
 
         /* Build the message to send to logger */
-        memcpy( msg_out.msg, "TOGGLE_LED", sizeof( msg_out.msg ) );
         msg_out.tickcount = xTaskGetTickCount();
-        msg_out.type = MSG_TOGGLE_LED;
+        msg_out.level = LOG_INFO;
         msg_out.data.toggle_count = toggle_count;
         static uint32_t led_d1 = LED_D1_PIN;
         static uint32_t led_d2 = LED_D2_PIN;
@@ -81,11 +80,7 @@ void led_task_callback( TimerHandle_t timer )
         GPIOPinWrite( LED_D1_PORT, LED_D1_PIN, led_d1 );
         GPIOPinWrite( LED_D2_PORT, LED_D2_PIN, led_d2 );
 
-        //Enqueue the worker queue with a new msg
-        if( xQueueSend( g_pLoggerQueue, &msg_out, xMaxBlockTime ) != pdPASS )
-        {
-            puts("ERROR - LED TASK - QUEUE SEND\n");
-        }
+        LOG_TASK_MSG( &msg_out, "TOGGLE COUNT: %u", msg_out.data.toggle_count );
     }
 }
 

@@ -13,6 +13,7 @@
 void tmp102_get_temp( float *temp )
 {
     uint16_t temp_raw = I2C2_read_word( TMP102_SLAVE_ADDR, TMP102_REG_TEMPERATURE );
+
     temp_raw = (temp_raw>>4) & 0xFFF;
 
     if(temp_raw & 0x800)
