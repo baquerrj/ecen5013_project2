@@ -20,9 +20,13 @@
 #include "task.h"
 
 #include "my_i2c.h"
+#include "my_spi.h"
 #include "uart.h"
-
 #include "logger_task.h"
+
+#include "nRF240L.h"
+#include "nrf_module.h"
+
 #include "led_task.h"
 #include "tmp102_task.h"
 #include "alert_task.h"
@@ -49,7 +53,6 @@ void vApplicationStackOverflowHook(xTaskHandle *pxTask, char *pcTaskName)
     }
 }
 
-
 int main( void )
 {
     /* Initialize system clock to 120MHz */
@@ -61,15 +64,19 @@ int main( void )
     /* Configure peripherals */
     UART0_config( BAUD_115200, g_sysClock );    /* Configure UART0 with Baud Rate 115200 */
 
-    I2C2_init();  /* Configure I2C Bus 2 for use with TMP102 sensor */
-    //I2C0_init();
-
     if( 0 != logger_task_init() )
     {
         puts( ERROR " LOGGER TASK INIT\n" );
         while(1);
     }
 
+
+    nrf_init_test();
+
+
+    while(1);
+
+    I2C2_init();  /* Configure I2C Bus 2 for use with TMP102 sensor */
 
     if( 0 != apds9301_task_init() )
     {
