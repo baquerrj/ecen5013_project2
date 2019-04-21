@@ -1,8 +1,6 @@
 # Debug Directory
 ./Debug
 
-# Third Party FreeRTOS (doesn't change)
-./third_party
 
 # Prerequisites
 *.d
