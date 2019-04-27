@@ -23,11 +23,12 @@
 #include "my_spi.h"
 
 
-spi_t SPI[ 4 ] = { NULL, NULL, NULL, NULL };
+spi_t SPI[ 2 ] = { NULL, NULL };
+static uint32_t opened[ 2 ] = {0};
 
 static spi_e spi_release( spi_e spi )
 {
-    if( spi > SPI_3 )
+    if( spi > SPI_1 )
     {
         return -1;
     }
@@ -35,6 +36,7 @@ static spi_e spi_release( spi_e spi )
     mraa_result_t retVal = mraa_spi_stop( SPI[ spi ] );
     if( MRAA_SUCCESS != retVal )
     {
+        mraa_result_print( retVal );
         return -1;
     }
     return spi;
@@ -43,13 +45,14 @@ static spi_e spi_release( spi_e spi )
 
 spi_e spi_init( spi_e spi )
 {
-    if( spi > SPI_3 )
+    if( spi > SPI_1 )
     {
         return -1;
     }
 
-    if( NULL != SPI[ spi ] )
+    if( opened[ spi ] && (NULL != SPI[ spi ]) )
     {
+        opened[ spi ]++;
         return spi;
     }
 
@@ -60,20 +63,27 @@ spi_e spi_init( spi_e spi )
     }
     
     SPI[ spi ] = spi_context;
-    mraa_result_t retVal = mraa_spi_frequency( SPI[ spi ], SPI_2MZ );
+    mraa_result_t retVal = mraa_spi_frequency( SPI[ spi ], SPI_1MZ );
     if( MRAA_SUCCESS != retVal )
     {
+        mraa_result_print( retVal );
         return spi_release( spi );
     }
 
+    opened[ spi ]++;
     return spi;
 }
 
 spi_e spi_disable( spi_e spi )
 {
-    if( spi > SPI_3 )
+    if( spi > SPI_1 )
     {
         return -1;
+    }
+
+    if( --opened[ spi ] )
+    {
+        return spi;
     }
 
     
@@ -83,13 +93,13 @@ spi_e spi_disable( spi_e spi )
 
 int8_t spi_write_packet( spi_e spi, uint8_t *p, size_t len )
 {
-    if( spi > SPI_3 )
+    if( spi > SPI_1 )
     {
         return -1;
     }
 
     uint8_t i = 0;
-    while( 1 < len )
+    while( i < len )
     {
         spi_write_byte( spi, *(p+i) );
         ++i;
@@ -99,13 +109,13 @@ int8_t spi_write_packet( spi_e spi, uint8_t *p, size_t len )
 
 int8_t spi_read_packet( spi_e spi, uint8_t *p, size_t len )
 {
-    if( spi > SPI_3 )
+    if( spi > SPI_1 )
     {
         return -1;
     }
 
     uint8_t i = 0;
-    while( 1 < len )
+    while( i < len )
     {
         *(p+i) = spi_read_byte( spi );
         ++i;

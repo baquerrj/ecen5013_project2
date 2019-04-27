@@ -30,21 +30,18 @@
 #define SPI_2MZ 2000000
 
 #define NOP 0xFF
-
 /*! Enum for possible SPI busses */
 typedef enum
 {
     SPI_0,
     SPI_1,
-    SPI_2,
-    SPI_3,
-    SPI_NUMBER
+    SPI_MAX
 } spi_e;
 
 
 typedef mraa_spi_context spi_t;
 
-spi_t SPI[ SPI_NUMBER ];
+spi_t SPI[ SPI_MAX ];
 
 /*!
  * @brief   Initialize SPI bus
@@ -78,7 +75,7 @@ static inline void spi_flush_rx( spi_e spi )
  * @brief   Read a single byte from the SPI bus
  * @returns uint8_t
  */
-static inline uint8_t spi_read_byte( spi_e spi )
+static inline int8_t spi_read_byte( spi_e spi )
 {
     return mraa_spi_write( SPI[ spi ], NOP );
 }
