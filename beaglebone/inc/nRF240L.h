@@ -48,8 +48,8 @@
 //Commands Byte
 #define NORDIC_CMD_FLUSH_TX     (0xE1)
 #define NORDIC_CMD_FLUSH_RX     (0xE2)
-#define NORDIC_CMD_W_TXPAYLD    (0xA0)
-#define NORDIC_CMD_R_RXPAYLD    (0x61)
+#define NORDIC_CMD_W_TX_PAYLOAD    (0xA0)
+#define NORDIC_CMD_R_RX_PAYLOAD    (0x61)
 #define NORDIC_CMD_ACTIVATE     (0x50)
 #define NORDIC_ACTIVATE_DATA    (0x73)
 #define NORDIC_CMD_RXPAYLD_W    (0x60)
@@ -62,7 +62,7 @@
 #define DEFAULT_TX_ADDRESS_4B   (0xE7)
 #define DEFAULT_TX_ADDRESS_5B   (0xE7)
 
-#define _BV(x)  (1<<((uint8_t)x))
+#define _BV(x)  (1ULL<<(x))
 
 #define NORDIC_TX_ADDR_LEN      (5)
 

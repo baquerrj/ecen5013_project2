@@ -39,7 +39,14 @@ volatile uint8_t transmitted = 0;
 volatile uint8_t received = 0;
 volatile uint8_t retry_error = 0;
 
+static uint8_t dynamic_payloads_enabled;
 static uint8_t interrupts_enabled = 0;
+
+static uint8_t ack_payload_available;
+static uint8_t ack_payload_length;
+static uint8_t payload_size = 32;
+
+uint8_t pipe0_reading_address = 0;
 
 void nordic_interrupt_handler( void *args );
 
@@ -53,7 +60,6 @@ mraa_gpio_context NRF_CSN_GPIO = 0;
 mraa_gpio_context NRF_CE_GPIO = 0;
 static mraa_gpio_context NRF_IRQ_GPIO = 0;
 
-uint8_t pipe0_reading_address = 0;
 
 int8_t nrf_gpio_init( void )
 {
@@ -159,7 +165,7 @@ void nrf_power_off( void )
 {
     interrupts_enabled = 0;
     uint8_t config = nrf_read_config();
-    nrf_write_config( config & ~(NORDIC_CONFIG_PWR_UP( 1 )) );
+    nrf_write_register( NORDIC_REG_CONFIG, config & ~_BV(NORDIC_MASK_PWR_UP) );
     return;
 }
 
@@ -272,18 +278,6 @@ nrf_pa_level_e nrf_get_palevel( void )
     return result ;
 }
 
-void print_status(uint8_t status)
-{
-  printf( "STATUS\t\t = 0x%02x RX_DR=%x TX_DS=%x MAX_RT=%x RX_P_NO=%x TX_FULL=%x\r\n" ,
-           status,
-           (status & _BV(NORDIC_MASK_RX_DR))?1:0,
-           (status & _BV(NORDIC_MASK_TX_DS))?1:0,
-           (status & _BV(NORDIC_MASK_MAX_RT))?1:0,
-           ((status >> RX_P_NO) & 0x07),
-           (status & _BV(TX_FULL))?1:0
-          );
-}
-
 void nrf_start_listening( void )
 {
     uint8_t cfg = nrf_read_register( NORDIC_REG_CONFIG );
@@ -384,18 +378,6 @@ int8_t nrf_setup_interrupts( interrupt_handler_t handler )
     }
     return 1;
 }
-
-void nrf_module_setup( nrf_data_rate_e data_rate, nrf_power_e power )
-{
-    //Clearing all interrupts
-    nrf_write_status( 0 );
-    nrf_write_config( 0x78 );
-    nrf_set_channel( 44 );
-    nrf_write_rf_setup(( power<<1) | (data_rate<<3) | 1 );
-    nrf_write_register( 0x03, 0x03 );
-    delayMs( 1 );
-}
-
 
 void nrf_write_status( uint8_t statusValue )
 {
@@ -501,46 +483,6 @@ void nrf_write_tx_addr( uint8_t * tx_addr )
     nrf_chip_disable();
 }
 
-void nrf_read_rx_pipe_addr( uint8_t pipe_num, uint8_t *address )
-{
-    if( pipe_num > 5 )
-        return;
-
-    nrf_chip_disable();
-    nrf_chip_enable();
-
-    spi_write_byte( SPI_0,(NORDIC_REG_RX_ADDR_P0 + pipe_num) );
-    spi_read_byte( SPI_0 );   //used to clear the previously value in the RX FIFO
-    size_t ADDR_LEN = NORDIC_TX_ADDR_LEN;
-    pipe_num > 2 ? ADDR_LEN = 1: 0;
-    spi_read_packet( SPI_0, address, ADDR_LEN );
-
-    nrf_chip_disable();
-}
-
-void nrf_write_rx_pipe_addr( uint8_t pipe_num, uint8_t *rx_addr )
-{
-    if( pipe_num > 5 )
-        return;
-
-    nrf_chip_disable();
-    nrf_chip_enable();
-
-    spi_write_byte( SPI_0,(NORDIC_REG_RX_ADDR_P0 + pipe_num) | 0x20 );
-    spi_read_byte( SPI_0 );   //used to clear the previously value in the RX FIFO
-    size_t ADDR_LEN = NORDIC_TX_ADDR_LEN;
-    pipe_num > 1 ? ADDR_LEN = 1: 0;
-    spi_write_packet( SPI_0,rx_addr,ADDR_LEN );
-    spi_flush_rx( SPI_0 );
-
-    nrf_chip_disable();
-}
-
-
-uint8_t nrf_read_fifo_status(  void  )
-{
-    return nrf_read_register( NORDIC_REG_FIFO_STATUS );
-}
 
 void nrf_flush_tx( void )
 {
@@ -568,90 +510,95 @@ void nrf_disable_rx_pipe( uint8_t rx_pipe_number )
     nrf_write_register( NORDIC_REG_EN_RXADDR, ret & (~(1<<rx_pipe_number))  );
 }
 
-static void nrf_mode_configure( nrf_mode_e mode, uint8_t rx_pipe_number, uint8_t addr[5], uint8_t payload_size )
+
+static const uint8_t child_pipe[] =
 {
-    if( mode < 2 )
+  NORDIC_REG_RX_ADDR_P0, NORDIC_REG_RX_ADDR_P1, NORDIC_REG_RX_ADDR_P2, NORDIC_REG_RX_ADDR_P3, NORDIC_REG_RX_ADDR_P4, NORDIC_REG_RX_ADDR_P5
+};
+static const uint8_t child_payload_size[] =
+{
+  NORDIC_REG_RX_PW_P0, NORDIC_REG_RX_PW_P1, NORDIC_REG_RX_PW_P2, NORDIC_REG_RX_PW_P3, NORDIC_REG_RX_PW_P4, NORDIC_REG_RX_PW_P5
+};
+static const uint8_t child_pipe_enable[] =
+{
+  ERX_P0, ERX_P1, ERX_P2, ERX_P3, ERX_P4, ERX_P5
+};
+
+void nrf_open_writing_pipe( uint64_t address )
+{
+    nrf_write_packet( NORDIC_REG_RX_ADDR_P0, (uint8_t*)(&address), 5 );
+    nrf_write_packet( NORDIC_REG_TX_ADDR, (uint8_t*)(&address), 5 );
+
+    nrf_write_register( NORDIC_REG_RX_PW_P0, payload_size );
+    return;
+}
+
+
+void nrf_open_reading_pipe( uint8_t number, uint64_t address )
+{
+    if( 0 == number )
     {
-        nrf_radio_disable();
-        uint8_t configureRead = nrf_read_config();
-
-        if( mode == NRF_MODE_TX )
-
+        pipe0_reading_address = address;
+    }
+    if( number <= 6 )
+    {
+        if( number < 2 )
         {
-            tx_configured = 1;
-            configureRead &= ~( NORDIC_CONFIG_TX_DS_INT( 1 ) );// | NORDIC_CONFIG_MAX_RT_INT(1)  );
-            nrf_flush_tx();
-            nrf_write_En_AA( 0 );
-            nrf_write_setup_retry( 0 );
-            nrf_write_tx_addr( addr );
-            nrf_write_rx_pipe_addr( rx_pipe_number, addr );
-            nrf_enable_rx_pipe( rx_pipe_number );
-            nrf_write_register(( NORDIC_REG_RX_PW_P0 ), payload_size );
-            nrf_write_config( configureRead | NORDIC_CONFIG_PWR_UP( 1 )  );
-            delayMs( 2 );
+            nrf_write_packet( child_pipe[ number ], (uint8_t*)(&address), 5 );
         }
         else
         {
-            rx_configured = 1;
-            configureRead |= NORDIC_CONFIG_PWR_UP( 1 ) | NORDIC_CONFIG_PRIM_RX( 1 );
-            configureRead &= ~( NORDIC_CONFIG_RX_DR_INT( 1 ) );
-            nrf_flush_rx();
-            nrf_enable_rx_pipe( rx_pipe_number );
-            nrf_write_rx_pipe_addr( rx_pipe_number, addr );
-            nrf_write_register( (NORDIC_REG_RX_PW_P0 + rx_pipe_number), payload_size );
-            nrf_write_config( configureRead );
-            nrf_radio_enable();
+            nrf_write_packet( child_pipe[ number ], (uint8_t*)(&address), 1 );
         }
 
-        delayMs( 2 );
-        printf("NORDIC Configured in %s mode\n", (( mode)?"RX MODE":"tx MODE") );
+        nrf_write_register( child_payload_size[ number ], payload_size );
 
+        uint8_t read = nrf_read_register( NORDIC_REG_EN_RXADDR );
+        nrf_write_register( NORDIC_REG_EN_RXADDR, read | _BV(child_pipe_enable[ number ]) );
     }
-    else
+    return;
+}
+
+
+uint8_t nrf_read_payload( uint8_t *buf, uint8_t len )
+{
+    uint8_t status;
+    uint8_t blank_len = dynamic_payloads_enabled ? 0 : (payload_size - len);
+
+    nrf_chip_enable();
+    status = spi_write_byte( SPI_0, NORDIC_CMD_R_RX_PAYLOAD );
+    while( len-- )
     {
-        printf("INVALID MODE\n");
+        *buf++ = spi_read_byte( SPI_0 );
     }
+    while( blank_len-- )
+    {
+        spi_read_byte( SPI_0 );
+    }
+    nrf_chip_disable();
+    return status;
 }
 
-void nrf_open_read_pipe( uint8_t rx_pipe_number, uint8_t rx_addr[5], uint8_t payload_size )
+uint8_t nrf_write_payload( uint8_t *buf, uint8_t len )
 {
-    nrf_mode_configure( NRF_MODE_RX, rx_pipe_number, rx_addr, payload_size );
-}
+    uint8_t status;
+    uint8_t blank_len = dynamic_payloads_enabled ? 0 : (payload_size - len);
 
-void nrf_open_write_pipe( uint8_t tx_addr[5] )
-{
-    nrf_mode_configure( NRF_MODE_TX, 0, tx_addr, 5 );
-}
-
-void nrf_close_write_pipe( void )
-{
-    tx_configured = 0;
-    uint8_t configureRead = nrf_read_config();
-    configureRead |= ( NORDIC_CONFIG_TX_DS_INT( 1 ) | NORDIC_CONFIG_MAX_RT_INT( 1 ) );
-    nrf_write_config( configureRead );
-    nrf_disable_rx_pipe( 0 );
-}
-
-void nrf_close_read_pipe( uint8_t rx_pipe_number )
-{
-    nrf_radio_disable();
-    rx_configured = 0;
-    uint8_t configureRead = nrf_read_config();
-    configureRead |= NORDIC_CONFIG_RX_DR_INT( 1 );
-    nrf_write_config( configureRead );
-    nrf_disable_rx_pipe( rx_pipe_number );
-}
-
-void nrf_write_tx_payload( uint8_t *data, uint8_t len )
-{
     nrf_chip_disable();
     nrf_chip_enable();
-    spi_write_byte( SPI_0, NORDIC_CMD_W_TXPAYLD );
-    spi_read_byte( SPI_0 ); //used to clear the previously value in the RX FIFO
+    status = spi_write_byte( SPI_0, NORDIC_CMD_W_TX_PAYLOAD );
+    while( len-- )
+    {
+        spi_write_byte( SPI_0, *buf++ );
+    }
+    while( blank_len-- )
+    {
+        spi_write_byte( SPI_0, 0 );
+    }
 
-    spi_write_packet( SPI_0,data, len );  //loading the FIFO with data  before enabling the CE pin
-    spi_flush_rx( SPI_0 );
     nrf_chip_disable();
+
+    return status;
 }
 
 void nrf_tx_pulse( void )
@@ -661,115 +608,89 @@ void nrf_tx_pulse( void )
     nrf_radio_disable();
 }
 
-uint8_t nrf_transmit_data( uint8_t *data, uint8_t len, uint8_t toRXMode )
+void nrf_start_write( uint8_t *buf, uint8_t len )
 {
-    if(tx_configured)
+    // Transmitter power-up
+    uint8_t config = nrf_read_register( NORDIC_REG_CONFIG );
+    nrf_write_register( NORDIC_REG_CONFIG, ( config | _BV(NORDIC_MASK_PWR_UP) ) & ~_BV(NORDIC_MASK_PRIM_RX) );
+    delayUs(150);
+
+    // Send the payload
+    nrf_write_payload( buf, len );
+
+    nrf_tx_pulse();
+}
+
+uint8_t nrf_write( uint8_t *buf, uint8_t len )
+{
+    uint8_t result = 0;
+
+    nrf_start_write( buf, len );
+
+    uint8_t observe_tx;
+    uint8_t status;
+    uint32_t timeout = 500;
+    while( (timeout > 0) && !( status & ( _BV(NORDIC_MASK_TX_DS) | _BV(NORDIC_MASK_MAX_RT) )) )
     {
-        uint8_t configureRead = nrf_read_config();
-        configureRead &= ~NORDIC_CONFIG_PRIM_RX( 1 );
-        nrf_write_config( configureRead );
-        configureRead = nrf_read_config();
-        delayUs( 130 );
+        status = nrf_read_packet( NORDIC_REG_OBSERVE_TX, &observe_tx, 1 );
+        timeout--;
+    }
+    uint8_t tx_ok, tx_fail;
+    what_happened( tx_ok, tx_fail, ack_payload_available );
 
-        nrf_radio_disable();
-
-        nrf_write_tx_payload( data, len );
-
-        nrf_tx_pulse();
-
-        printf("Data written");
-
-        if( interrupts_enabled )
-        {
-            while( transmitted == 0 && retry_error == 0 );    //wait till tx data is transmitted from FIFO
-            if( retry_error )
-            {
-                retry_error = 0;
-                printf("Data Retry Error\n");
-            }
-            else
-            {
-                transmitted = 0; printf("Data Transmitted\n");
-            }
-        }
-        else
-        {
-            uint8_t status = 0;
-            while( !(( NORDIC_MASK_STATUS_TX_DS | NORDIC_MASK_STATUS_MAX_RT ) & status ) )
-            {
-                status = nrf_read_status();
-            }
-            nrf_write_status( NORDIC_MASK_STATUS_TX_DS  |
-                              NORDIC_MASK_STATUS_MAX_RT |
-                              NORDIC_MASK_STATUS_MAX_RT );
-        }
-
-        if( toRXMode )
-        {
-            configureRead &= ~( NORDIC_CONFIG_PRIM_RX( 1 ) );
-            nrf_write_config( configureRead );
-            nrf_flush_rx();
-            nrf_radio_enable();
-        }
-
+    result = tx_ok;
+    if( result )
+    {
+        printf( "TX SUCCESS\n" );
     }
     else
     {
-        printf("tx mode not configured");
+        printf( "TX FAIL\n" );
     }
-    return 0;
+
+    if( ack_payload_available )
+    {
+        ack_payload_length = nrf_get_dynamic_payload_size();
+        printf( "[AckPacket]/\n%d", ack_payload_length );
+    }
+
+    nrf_power_off();
+
+    nrf_flush_tx();
+
+    return result;
 }
 
-void nrf_read_rx_payload( uint8_t *data, uint8_t len )
+uint8_t nrf_get_dynamic_payload_size( void )
+{
+    return nrf_read_register( NORDIC_CMD_RXPAYLD_W );
+}
+
+uint8_t nrf_read( uint8_t *buf, uint8_t len )
+{
+    nrf_read_payload( buf, len );
+
+    return nrf_read_register( NORDIC_REG_FIFO_STATUS ) & _BV( RX_EMPTY );
+}
+
+void what_happened( uint8_t tx_ok, uint8_t tx_fail, uint8_t rx_ready )
+{
+    uint8_t status = nrf_read_register( NORDIC_REG_STATUS );
+
+    tx_ok = status & _BV(NORDIC_MASK_TX_DS);
+    tx_fail = status & _BV(NORDIC_MASK_MAX_RT);
+    rx_ready  = status & _BV(NORDIC_MASK_RX_DR);
+    return;
+}
+
+void nrf_toggle_features( void )
 {
     nrf_chip_enable();
-
-    spi_write_byte( SPI_0, NORDIC_CMD_R_RXPAYLD );
-    spi_read_byte( SPI_0 );   //used to clear the previously value in the RX FIFO
-    spi_read_packet( SPI_0,data,len );
-    //spi_flush( SPI_0 );
-
+    spi_write_byte( SPI_0, ACTIVATE );
+    spi_write_byte( SPI_0, 0x78 );
     nrf_chip_disable();
+    return;
 }
-
-uint8_t nrf_read_data( uint8_t *data, uint8_t len )
-{
-    if( rx_configured )
-    {
-        nrf_radio_enable();
-        nrf_read_fifo_status();
-        nrf_read_config();
-        uint8_t val = 0;
-        //Status reg if data is available
-        if( interrupts_enabled )
-        {
-            while( received == 0 )    //wait till RX data in FIFO
-            {
-                val = nrf_read_fifo_status();
-            }
-            received = 0;
-        }
-        else
-        {
-            uint8_t status = 0;
-            while( !( NORDIC_MASK_STATUS_RX_DR & status ) )
-            {
-                status = nrf_read_status();
-            }
-        }
-        printf("Data received");
-
-        nrf_read_rx_payload( data, len );
-
-        printf("Data read");
-    }
-    else
-    {
-        printf("RX mode not configured");
-    }
-    return 0;
-}
-
 
 void nrf_init_test( void )
 {
@@ -890,3 +811,17 @@ void nordic_interrupt_handler( void *args )
         printf( "NRF TX RETRU ERROR\n" );
     }
 }
+
+void print_status(uint8_t status)
+{
+  printf( "STATUS\t\t = 0x%02x RX_DR=%x TX_DS=%x MAX_RT=%x RX_P_NO=%x TX_FULL=%x\r\n" ,
+           status,
+           (status & _BV(NORDIC_MASK_RX_DR))?1:0,
+           (status & _BV(NORDIC_MASK_TX_DS))?1:0,
+           (status & _BV(NORDIC_MASK_MAX_RT))?1:0,
+           ((status >> RX_P_NO) & 0x07),
+           (status & _BV(TX_FULL))?1:0
+          );
+}
+
+
