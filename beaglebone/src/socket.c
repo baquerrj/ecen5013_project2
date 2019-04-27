@@ -17,7 +17,7 @@
 
 #include "socket.h"
 #include "apds9301_task.h"
-#include "tmp102_task.h"
+//#include "tmp102_task.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -57,24 +57,24 @@ remote_t process_request( remote_t *request )
          LOG_INFO( "Request Day or Night: %s\n",
                   (response.data.night == 0) ? "day" : "night");
          break;
-      case REQUEST_TEMP:
-         response.id = request->id;
-         response.data.data = get_temperature();
-         LOG_INFO( "Request Temperature: %.5f C\n",
-                  response.data.data );
-         break;
-      case REQUEST_TEMP_K:
-         response.id = request->id;
-         response.data.data = get_temperature() + 273.15;
-         LOG_INFO( "Request Temperature: %.5f K\n",
-                  response.data.data );
-         break;
-       case REQUEST_TEMP_F:
-         response.id = request->id;
-         response.data.data = (get_temperature() *1.80) + 32.0;
-         LOG_INFO( "Request Temperature: %.5f F\n",
-                  response.data.data );
-         break;
+//     case REQUEST_TEMP:
+//        response.id = request->id;
+//        response.data.data = get_temperature();
+//        LOG_INFO( "Request Temperature: %.5f C\n",
+//                 response.data.data );
+//        break;
+//     case REQUEST_TEMP_K:
+//        response.id = request->id;
+//        response.data.data = get_temperature() + 273.15;
+//        LOG_INFO( "Request Temperature: %.5f K\n",
+//                 response.data.data );
+//        break;
+//      case REQUEST_TEMP_F:
+//        response.id = request->id;
+//        response.data.data = (get_temperature() *1.80) + 32.0;
+//        LOG_INFO( "Request Temperature: %.5f F\n",
+//                 response.data.data );
+//        break;
       case REQUEST_CLOSE:
          response.id = request->id;
          LOG_INFO( "Request Close Connection\n" );

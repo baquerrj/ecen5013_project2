@@ -31,8 +31,8 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 
-#define NUM_THREADS         (6)
-#define _PROXIMITY_ 1
+#define NUM_THREADS         (4)
+//#define _PROXIMITY_ 1
 #define MSG_SIZE 100
 #define MAX_MESSAGES 100
 
@@ -87,9 +87,9 @@ pthread_t task_id[ NUM_THREADS ];
 
 typedef enum {
    TASK_LOGGER = 0,
-   TASK_TMP102,
+//   TASK_TMP102,
    TASK_APDS9301,
-   TASK_APDS9960,
+//   TASK_APDS9960,
    TASK_SOCKET,
    TASK_WATCHDOG,
    TASK_MAX

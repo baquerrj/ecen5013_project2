@@ -160,10 +160,6 @@ void nrf_power_off( void )
     interrupts_enabled = 0;
     uint8_t config = nrf_read_config();
     nrf_write_config( config & ~(NORDIC_CONFIG_PWR_UP( 1 )) );
-    spi_disable( SPI_0 );
-    mraa_gpio_close( NRF_IRQ_GPIO );
-    mraa_gpio_close( NRF_CE_GPIO );
-    mraa_gpio_close( NRF_CSN_GPIO );
     return;
 }
 
@@ -842,11 +838,13 @@ void nrf_init_test( void )
 //   nrf_transmit_data( Data,5, false );
 //   printf("Nordic Data Sent: 0x%x, 0x%x", Data[0],Data[1]);
 
-    printf("Nordic Test End\n");
 
     nrf_stop_listening();
+    printf( "NRF STOP LISTENING\n" );
     nrf_power_off();
+    printf( "NRF POWERED OFF\n" );
     spi_disable( SPI_0 );
+    printf( "SPI0 DISABLED\n" );
     mraa_result_t status = mraa_gpio_close(NRF_IRQ_GPIO);
     if( MRAA_SUCCESS != status )
     {
