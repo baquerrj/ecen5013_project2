@@ -10,6 +10,8 @@
 #ifndef _NRF240L_H_
 #define _NRF240L_H_
 
+#include "my_spi.h"
+
 #define NRF_CE_SYSCTL_PORT       SYSCTL_PERIPH_GPIOE
 #define NRF_CSN_SYSCTL_PORT      SYSCTL_PERIPH_GPIOE
 #define NRF_IRQ_SYSCTL_PORT      SYSCTL_PERIPH_GPIOE
@@ -23,6 +25,7 @@
 #define NRF_IRQ_PORT GPIO_PORTE_BASE
 #define NRF_IRQ_PIN  GPIO_PIN_2
 
+#define NRF_SPI     SPI_1
 #define RX_P_NO     1
 #define TX_FULL     0
 /* P model bit Mnemonics */
@@ -136,6 +139,7 @@
 #define FLUSH_RX      0xE2
 #define REUSE_TX_PL   0xE3
 #define NOP           0xFF
+#define W_TX_PAYLOAD_NO_ACK  0xB0
 
 //Masks
 #define NRF_RX_DR   6

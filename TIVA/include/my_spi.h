@@ -99,7 +99,7 @@ static inline void spi_flush_rx( spi_e spi )
 
 
 /*!
- * @brief   Read a single byte from the SPI bus
+ * @brief   Read a si1ngle byte from the SPI bus
  * @returns uint8_t
  */
 static inline uint8_t spi_read_byte( spi_e spi )
@@ -127,7 +127,7 @@ static inline void spi_write_byte( spi_e spi, uint8_t byte )
  * Send multiple bytes given a pointer to an array and the number of bytes to be sent
  * @returns void
  */
-void spi_write_packet( spi_e spi, uint8_t* p, size_t length );
+void spi_write_packet( spi_e spi, const uint8_t* p, size_t length );
 
 /*!
  * @brief   Read a packet from the SPI bus
