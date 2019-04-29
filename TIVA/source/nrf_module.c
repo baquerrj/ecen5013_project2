@@ -86,25 +86,36 @@ uint8_t nrf_module_init( void )
 
     delayMs( 5 );
 
-    nrf_write_register( NRF_REG_SETUP_RETR, (0b0101 << ARD) | (0b1111 << ARC));
+    nrf_write_register( NRF_REG_CONFIG, 0x0C );
+    nrf_set_retries( 15, 15 );
 
-    nrf_set_palevel( NRF_PA_MAX );
+//    nrf_write_register( NRF_REG_SETUP_RETR, (0b0101 << ARD) | (0b1111 << ARC));
+
+//    nrf_set_palevel( NRF_PA_MAX );
 
     nrf_set_datarate( NRF_DR_1MBPS );
 
-    nrf_set_crc_length( NRF_CRC_16 );
+//    nrf_set_crc_length( NRF_CRC_16 );
 
+    nrf_toggle_features();
+    nrf_write_register( NRF_REG_FEATURE, 0 );
+
+    nrf_write_register( NRF_REG_FEATURE, 0x01 );    // enables W_TX_PAYLOAD_NO_ACK
+    nrf_write_register( NRF_REG_EN_AA, 0x3F );      // enables auto-ack
     nrf_write_register( NRF_REG_DYNPD, 0 );
+    dynamic_payloads_enabled = 0;
     nrf_write_register( NRF_REG_STATUS, NRF_MASK_STATUS_RX_DR |
                                         NRF_MASK_STATUS_TX_DS |
                                         NRF_MASK_STATUS_MAX_RT );
 
-    nrf_set_channel(76);
+    nrf_set_channel( 0x4C );
 
     nrf_flush_rx();
     nrf_flush_tx();
 
     nrf_power_on();
+
+    nrf_write_register( NRF_REG_CONFIG, (nrf_read_register(NRF_REG_CONFIG)) & ~_BV(NRF_PRIM_RX) );
 
     return 0;
 }
@@ -496,37 +507,24 @@ void nrf_open_reading_pipe( uint8_t number, uint64_t address )
 
 uint8_t nrf_read_payload( uint8_t *buf, uint8_t len )
 {
-    uint8_t blank_len = dynamic_payloads_enabled ? 0 : (payload_size - len);
-
     nrf_chip_enable();
     spi_write_byte( NRF_SPI, NRF_CMD_R_RX_PAYLOAD );
-    while( len-- )
-    {
-        *buf++ = spi_read_byte( NRF_SPI );
-    }
-    while( blank_len-- )
-    {
-        spi_read_byte( NRF_SPI );
-    }
+    spi_read_byte( NRF_SPI );
+    spi_read_packet( NRF_SPI, buf, len );
     nrf_chip_disable();
     return 0;
 }
 
 uint8_t nrf_write_payload( const void *buf, uint8_t len, const uint8_t writeType )
 {
-    uint8_t status = 0;
-    uint8_t *data = (uint8_t*)buf;
-//    uint8_t blank_len = dynamic_payloads_enabled ? 0 : (payload_size - len);
 
-    nrf_chip_enable();
-    spi_write_byte( NRF_SPI, W_TX_PAYLOAD_NO_ACK );
+    nrf_write_command( writeType );
 //    nrf_write_command( W_TX_PAYLOAD );
-//    status = spi_write_byte( NRF_SPI, W_TX_PAYLOAD );
-    spi_read_byte( NRF_SPI );
-    spi_write_packet( NRF_SPI, data, len );
+    nrf_chip_enable();
+    spi_write_packet( NRF_SPI, (uint8_t*)buf, len );
     nrf_chip_disable();
 
-    return status;
+    return 0;
 }
 
 void nrf_tx_pulse( void )
@@ -544,8 +542,7 @@ void nrf_start_write( void *buf, uint8_t len )
     delayUs(150);
 
     // Send the payload
-    //nrf_write_payload( buf, len );
-    nrf_write_payload( buf, len, 0 );
+    nrf_write_payload( buf, len, W_TX_PAYLOAD );
     nrf_tx_pulse();
 }
 
@@ -599,6 +596,7 @@ uint8_t nrf_available( void )
 
     uint8_t result = (status & NRF_MASK_RX_DR);
 
+    //print_status( status );
     if( result )
     {
         nrf_write_register( NRF_REG_STATUS, NRF_MASK_RX_DR );
@@ -697,7 +695,7 @@ void nrf_init_test( void )
 
 void print_status(uint8_t status)
 {
-  printf( "STATUS\t\t = 0x%02x RX_DR=%x TX_DS=%x MAX_RT=%x RX_P_NO=%x TX_FULL=%x\r\n" ,
+  printf( "STATUS\t\t = 0x%x RX_DR=%x TX_DS=%x MAX_RT=%x RX_P_NO=%x TX_FULL=%x\n" ,
            status,
            (status & _BV(NRF_RX_DR))?1:0,
            (status & _BV(NRF_TX_DS))?1:0,
