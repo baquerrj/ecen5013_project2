@@ -67,141 +67,6 @@ typedef enum
 
 extern uint32_t g_sysClock;
 
-#if 0
-/*!
-* @brief - Enable the chip select connection to Nordic
-* @return void
-**/
-static inline void nrf_chip_enable( void )
-{
-    GPIOPinWrite( NRF_CSN_PORT, NRF_CSN_PIN, 0 );
-    delayUs(50);
-}
-
-/*!
-* @brief - Disable the chip select connection to Nordic
-* @return void
-**/
-static inline void nrf_chip_disable( void )
-{
-    GPIOPinWrite( NRF_CSN_PORT, NRF_CSN_PIN, 1 );
-}
-
-/*!
-* @brief - Enable TX/RX from the Nordic module
-* @return void
-**/
-static inline void nrf_radio_enable( void )
-{
-    GPIOPinWrite( NRF_CE_PORT, NRF_CE_PIN, 1 );
-}
-
-/*!
-* @brief - Disable TX/RX from the Nordic module
-* @return void
-**/
-static inline void nrf_radio_disable( void )
-{
-    GPIOPinWrite( NRF_CE_PORT, NRF_CE_PIN, 0 );
-}
-
-
-/*!
- * @brief Send command to NRF module
- *
- * @param[in] command
- */
-static inline void nrf_write_command( uint8_t command )
-{
-    nrf_chip_disable();
-    nrf_chip_enable();
-
-    spi_write_byte( SPI_1, command );
-    spi_read_byte( SPI_1 );
-
-    nrf_chip_disable();
-    return;
-}
-
-/*!
- * @brief - Read a register from the nrf module
- * @param - reg uint8_t
- * @return uint8_t
- */
-static inline uint8_t nrf_read_register( uint8_t reg )
-{
-   uint8_t data = 0;
-
-   nrf_chip_disable();
-   nrf_chip_enable();
-
-   spi_write_byte( SPI_1, reg );
-   spi_read_byte( SPI_1 );
-   spi_write_byte( SPI_1, NRF_NOP );
-   data = spi_read_byte( SPI_1 );
-
-   nrf_chip_disable();
-   return data;
-}
-
-
-/*!
- * @brief
- *
- * @param  <+NAME+> <+DESCRIPTION+>
- * @return <+DESCRIPTION+>
- * <+DETAILED+>
- */
-static inline uint8_t nrf_read_packet( uint8_t reg, uint8_t *buf, uint8_t len )
-{
-    nrf_chip_disable();
-    nrf_chip_enable();
-
-    spi_write_byte( SPI_1, R_REGISTER | (REGISTER_MASK & reg) );
-    while( len-- )
-    {
-        *buf++ = spi_read_byte( SPI_1 );
-    }
-    nrf_chip_disable();
-    return 0;
-}
-
-/*!
- * @brief - Write to a register from the nrf module
- * @param - reg uint8_t
- * @param - value uint8_t
- * @return void
- */
-static inline void nrf_write_register( uint8_t reg, uint8_t value )
-{
-    nrf_chip_disable();
-    nrf_chip_enable();
-
-    spi_write_byte( SPI_1, W_REGISTER | (REGISTER_MASK & reg) );
-    spi_read_byte( SPI_1 );
-    spi_write_byte( SPI_1, value );
-    spi_read_byte( SPI_1 );
-
-    nrf_chip_disable();
-    return;
-}
-
-
-static inline uint8_t nrf_write_packet( uint8_t reg, const uint8_t *buf, uint8_t len )
-{
-    nrf_chip_disable();
-    nrf_chip_enable();
-
-    spi_write_byte( SPI_1, W_REGISTER | (REGISTER_MASK & reg) );
-    while( len-- )
-    {
-        spi_write_byte( SPI_1, *buf++ );
-    }
-
-    nrf_chip_disable();
-    return 0;
-}
-#else
 /*!
 * @brief - Enable the chip select connection to Nordic
 * @return void
@@ -258,8 +123,8 @@ uint8_t nrf_read_packet( uint8_t reg, uint8_t *buf, uint8_t len );
  */
 void nrf_write_register( uint8_t reg, uint8_t value );
 
+
 uint8_t nrf_write_packet( uint8_t reg, const uint8_t *buf, uint8_t len );
-#endif
 
 
 
