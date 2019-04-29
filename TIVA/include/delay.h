@@ -26,4 +26,5 @@ static inline void delayUs( uint32_t us)
     MAP_SysCtlDelay( (g_sysClock/(1000000 * 3)) *us );
 }
 
+#define __millis()  xTaskGetTickCount()
 #endif /* _DELAY_H_ */
