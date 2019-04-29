@@ -73,14 +73,16 @@ void spi_init( spi_e spi )
 }
 
 
-void spi_write_packet( spi_e spi, uint8_t* p, size_t length )
+void spi_write_packet( spi_e spi, const uint8_t* p, size_t length )
 {
     uint8_t i=0;
     while ( i<length )
     {
+        spi_read_byte( spi );
         spi_write_byte( spi, *(p+i) );
         ++i;
     }
+    spi_read_byte( spi );
 }
 
 void spi_read_packet( spi_e spi, uint8_t* p, size_t length )
@@ -88,8 +90,9 @@ void spi_read_packet( spi_e spi, uint8_t* p, size_t length )
     uint8_t i=0;
     while ( i<length )
     {
-        spi_write_byte( spi,0xFF );
+        spi_write_byte( spi, 0xFF );
         *(p+i) = spi_read_byte( spi );
         ++i;
     }
+
 }

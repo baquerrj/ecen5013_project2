@@ -127,7 +127,7 @@ static inline void spi_write_byte( spi_e spi, uint8_t byte )
  * Send multiple bytes given a pointer to an array and the number of bytes to be sent
  * @returns void
  */
-void spi_write_packet( spi_e spi, uint8_t* p, size_t length );
+void spi_write_packet( spi_e spi, const uint8_t* p, size_t length );
 
 /*!
  * @brief   Read a packet from the SPI bus
