@@ -99,7 +99,7 @@ static inline void spi_flush_rx( spi_e spi )
 
 
 /*!
- * @brief   Read a single byte from the SPI bus
+ * @brief   Read a si1ngle byte from the SPI bus
  * @returns uint8_t
  */
 static inline uint8_t spi_read_byte( spi_e spi )

@@ -78,11 +78,11 @@ void spi_write_packet( spi_e spi, const uint8_t* p, size_t length )
     uint8_t i=0;
     while ( i<length )
     {
-        spi_read_byte( spi );
+        spi_flush_rx( spi );
         spi_write_byte( spi, *(p+i) );
         ++i;
     }
-    spi_read_byte( spi );
+    spi_flush_rx( spi );
 }
 
 void spi_read_packet( spi_e spi, uint8_t* p, size_t length )
