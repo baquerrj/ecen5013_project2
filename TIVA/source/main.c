@@ -32,7 +32,7 @@
 #include "alert_task.h"
 #include "apds9301_task.h"
 #include "apds9960_task.h"
-
+#include "node_comm_task.h"
 #define _APDS_
 uint32_t g_sysClock = CLOCK_FREQ;
 
@@ -70,12 +70,17 @@ int main( void )
         while(1);
     }
 
+    //nrf_init_test();
+    //while(1);
 
-    nrf_init_test();
+    if( 0 != node_comm_task_init() )
+    {
+        puts( ERROR " NODE COMM TASK INIT\n" );
+        while(1);
+    }
 
 
-    while(1);
-
+#if 0
     I2C2_init();  /* Configure I2C Bus 2 for use with TMP102 sensor */
 
     if( 0 != apds9301_task_init() )
@@ -106,10 +111,11 @@ int main( void )
         puts( ERROR " LED TASK INIT\n" );
         while(1);
     }
+#endif
 
     puts( "SUCCESS - All tasks initialized. Starting scheduler...\n" );
-
     vTaskStartScheduler();
+
 
     puts( "ERROR - Scheduler Exited\n" );
     while(1);
