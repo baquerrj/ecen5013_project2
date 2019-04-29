@@ -71,39 +71,76 @@ extern uint32_t g_sysClock;
 * @brief - Enable the chip select connection to Nordic
 * @return void
 **/
-void nrf_chip_enable( void );
+static inline void nrf_chip_enable( void )
+{
+    GPIOPinWrite( NRF_CSN_PORT, NRF_CSN_PIN, 0 );
+    delayUs(50);
+}
 
 /*!
 * @brief - Disable the chip select connection to Nordic
 * @return void
 **/
-void nrf_chip_disable( void );
+static inline void nrf_chip_disable( void )
+{
+    GPIOPinWrite( NRF_CSN_PORT, NRF_CSN_PIN, NRF_CSN_PIN );
+}
 
 /*!
 * @brief - Enable TX/RX from the Nordic module
 * @return void
 **/
-void nrf_radio_enable( void );
+static inline void nrf_radio_enable( void )
+{
+    GPIOPinWrite( NRF_CE_PORT, NRF_CE_PIN, NRF_CE_PIN );
+}
 
 /*!
 * @brief - Disable TX/RX from the Nordic module
 * @return void
 **/
-void nrf_radio_disable( void );
+static inline void nrf_radio_disable( void )
+{
+    GPIOPinWrite( NRF_CE_PORT, NRF_CE_PIN, 0 );
+}
 
 /*!
  * @brief Send command to NRF module
  *
  * @param[in] command
  */
-void nrf_write_command( uint8_t command );
+static inline void nrf_write_command( uint8_t command )
+{
+    nrf_chip_disable();
+    nrf_chip_enable();
+
+    spi_write_byte( NRF_SPI, command );
+    spi_read_byte( NRF_SPI );
+
+    nrf_chip_disable();
+    return;
+}
 
 /*!
  * @brief - Read a register from the nrf module
  * @param - reg uint8_t
  * @return uint8_t
  */
-uint8_t nrf_read_register( uint8_t reg );
+static inline uint8_t nrf_read_register( uint8_t reg )
+{
+    uint8_t data = 0;
+
+    nrf_chip_disable();
+    nrf_chip_enable();
+
+    spi_write_byte( NRF_SPI, reg );
+    spi_read_byte( NRF_SPI );
+    spi_write_byte( NRF_SPI, NRF_NOP );
+    data = spi_read_byte( NRF_SPI );
+
+    nrf_chip_disable();
+    return data;
+}
 
 
 /*!
@@ -113,7 +150,18 @@ uint8_t nrf_read_register( uint8_t reg );
  * @return <+DESCRIPTION+>
  * <+DETAILED+>
  */
-uint8_t nrf_read_packet( uint8_t reg, uint8_t *buf, uint8_t len );
+static inline uint8_t nrf_read_packet( uint8_t reg, uint8_t *buf, uint8_t len )
+{
+    nrf_chip_disable();
+    nrf_chip_enable();
+
+    spi_write_byte( NRF_SPI, R_REGISTER | (REGISTER_MASK & reg) );
+    spi_read_byte( NRF_SPI );
+    spi_read_packet( NRF_SPI, buf, len );
+
+    nrf_chip_disable();
+    return 0;
+}
 
 /*!
  * @brief - Write to a register from the nrf module
@@ -121,11 +169,38 @@ uint8_t nrf_read_packet( uint8_t reg, uint8_t *buf, uint8_t len );
  * @param - value uint8_t
  * @return void
  */
-void nrf_write_register( uint8_t reg, uint8_t value );
+static inline void nrf_write_register( uint8_t reg, uint8_t value )
+{
+    nrf_chip_disable();
+    nrf_chip_enable();
 
+    spi_write_byte( NRF_SPI, W_REGISTER | (REGISTER_MASK & reg) );
+    spi_read_byte( NRF_SPI );
+    spi_write_byte( NRF_SPI, value );
+    spi_read_byte( NRF_SPI );
 
-uint8_t nrf_write_packet( uint8_t reg, const uint8_t *buf, uint8_t len );
+    nrf_chip_disable();
+    return;
+}
 
+/*!
+ * @brief - Write to a register from the nrf moudle
+ * @param[in]   register Register to write to
+ * @param[in]   buf Where to get data from
+ * @param[in]   len Number of bytes to write
+ * @returns 0
+ */
+static inline uint8_t nrf_write_packet( uint8_t reg, const uint8_t *buf, uint8_t len )
+{
+    nrf_chip_disable();
+    nrf_chip_enable();
+
+    spi_write_byte( NRF_SPI, W_REGISTER | (REGISTER_MASK & reg) );
+    spi_write_packet( NRF_SPI, buf, len );
+
+    nrf_chip_disable();
+    return 0;
+}
 
 
 /*!
@@ -224,7 +299,7 @@ void nrf_stop_listening( void );
  * @param[in]   len number of bytes to send
  * @return Current value of the status register
  */
-uint8_t nrf_write_payload( uint8_t *buf, uint8_t len );
+uint8_t nrf_write_payload( const void *buf, uint8_t len, const uint8_t writeType );
 
 
 /*!
@@ -251,6 +326,8 @@ void nrf_flush_rx( void );
 
 
 uint8_t nrf_get_dynamic_payload_size( void );
+
+
 void what_happened( uint8_t *tx_ok, uint8_t *tx_fail, uint8_t *rx_ready );
 
 
@@ -323,7 +400,7 @@ void nrf_set_channel( uint8_t channel );
  * @return <+DESCRIPTION+>
  * <+DETAILED+>
  */
-uint8_t nrf_write( uint8_t *data, uint8_t len );
+uint8_t nrf_write( void *data, uint8_t len );
 
 
 /*!
@@ -342,7 +419,7 @@ uint8_t nrf_available( void );
  * @param[in]   len number of bytes to read
  * @returns 0 if payload was not delivered successfully
   */
-uint8_t nrf_read( uint8_t *buf, uint8_t len );
+uint8_t nrf_read( void *buf, uint8_t len );
 
 
 
@@ -381,6 +458,12 @@ void nrf_close_read_pipe( uint8_t rx_pipe_number );
 
 void nrf_init_test( void );
 
-
+/*!
+ * @brief Decode and print contents of status register
+ *
+ * @param[in]   status content of NRF status register
+ * @returns void
+ */
+void print_status( uint8_t status );
 
 #endif   /* _NRF_MODULE_H */

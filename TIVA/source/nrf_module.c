@@ -38,100 +38,17 @@ void nordic_interrupt_handler( void );
 
 static interrupt_handler_t user_handler;
 
-
-void nrf_chip_enable( void )
+void nrf_module_deinit( void )
 {
-    GPIOPinWrite( NRF_CSN_PORT, NRF_CSN_PIN, 0 );
-    delayUs(50);
-}
+    nrf_stop_listening();
+    printf( "NRF STOP LISTENING\n" );
+    nrf_power_off();
+    printf( "NRF POWERED OFF\n" );
+    spi_disable( NRF_SPI );
+    printf( "SPI_1 DISABLED\n" );
 
-
-void nrf_chip_disable( void )
-{
-    GPIOPinWrite( NRF_CSN_PORT, NRF_CSN_PIN, NRF_CSN_PIN );
-}
-
-
-void nrf_radio_enable( void )
-{
-    GPIOPinWrite( NRF_CE_PORT, NRF_CE_PIN, NRF_CE_PIN );
-}
-
-
-void nrf_radio_disable( void )
-{
-    GPIOPinWrite( NRF_CE_PORT, NRF_CE_PIN, 0 );
-}
-
-
-void nrf_write_command( uint8_t command )
-{
-    nrf_chip_disable();
-    nrf_chip_enable();
-
-    spi_write_byte( NRF_SPI, command );
-    spi_read_byte( NRF_SPI );
-
-    nrf_chip_disable();
-    return;
-}
-
-uint8_t nrf_read_register( uint8_t reg )
-{
-   uint8_t data = 0;
-
-   nrf_chip_disable();
-   nrf_chip_enable();
-
-   spi_write_byte( NRF_SPI, reg );
-   spi_read_byte( NRF_SPI );
-   spi_write_byte( NRF_SPI, NRF_NOP );
-   data = spi_read_byte( NRF_SPI );
-
-   nrf_chip_disable();
-   return data;
-}
-
-
-
-uint8_t nrf_read_packet( uint8_t reg, uint8_t *buf, uint8_t len )
-{
-    nrf_chip_disable();
-    nrf_chip_enable();
-
-    spi_write_byte( NRF_SPI, R_REGISTER | (REGISTER_MASK & reg) );
-    spi_read_byte( NRF_SPI );
-    spi_read_packet( NRF_SPI, buf, len );
-
-    nrf_chip_disable();
-    return 0;
-}
-
-
-void nrf_write_register( uint8_t reg, uint8_t value )
-{
-    nrf_chip_disable();
-    nrf_chip_enable();
-
-    spi_write_byte( NRF_SPI, W_REGISTER | (REGISTER_MASK & reg) );
-    spi_read_byte( NRF_SPI );
-    spi_write_byte( NRF_SPI, value );
-    spi_read_byte( NRF_SPI );
-
-    nrf_chip_disable();
-    return;
-}
-
-uint8_t nrf_write_packet( uint8_t reg, const uint8_t *buf, uint8_t len )
-{
-    nrf_chip_disable();
-    nrf_chip_enable();
-
-    spi_write_byte( NRF_SPI, W_REGISTER | (REGISTER_MASK & reg) );
-    spi_write_packet( NRF_SPI, buf, len );
-
-    nrf_chip_disable();
-    return 0;
+    GPIOIntClear( NRF_IRQ_PORT, NRF_IRQ_PIN );
+    GPIOIntUnregister( NRF_IRQ_PORT );
 }
 
 int8_t nrf_setup_interrupts( interrupt_handler_t handler )
@@ -191,7 +108,6 @@ uint8_t nrf_module_init( void )
 
     return 0;
 }
-
 uint8_t nrf_set_datarate( nrf_data_rate_e speed )
 {
     uint8_t result = 0;
@@ -233,7 +149,7 @@ void nrf_power_on( void )
 void nrf_power_off( void )
 {
     interrupts_enabled = 0;
-    uint8_t config = nrf_read_register( NRF_REG_CONFIG );
+    uint8_t config = nrf_read_config();
     nrf_write_register( NRF_REG_CONFIG, config & ~_BV(NRF_PWR_UP) );
     return;
 }
@@ -252,7 +168,7 @@ uint8_t nrf_get_retries( void )
 
 void nrf_set_crc_length( nrf_crc_e length )
 {
-    uint8_t config = nrf_read_register( NRF_REG_CONFIG ) & ~( _BV(CRCO) | _BV(EN_CRC));
+    uint8_t config = nrf_read_register( NRF_REG_CONFIG ) & ~( _BV(CRCO) | _BV(EN_CRC)) ;
 
     // switch uses RAM (evil!)
     if ( length == NRF_CRC_DISABLED )
@@ -268,14 +184,14 @@ void nrf_set_crc_length( nrf_crc_e length )
         config |= _BV(EN_CRC);
         config |= _BV( CRCO );
     }
-    nrf_write_register( NRF_REG_CONFIG, config );
+    nrf_write_register( NRF_REG_CONFIG, config ) ;
 }
 
 
 nrf_crc_e nrf_get_crc_length( void )
 {
     nrf_crc_e result = NRF_CRC_DISABLED;
-    uint8_t config = nrf_read_register( NRF_REG_CONFIG ) & ( _BV(CRCO) | _BV(EN_CRC));
+    uint8_t config = nrf_read_register( NRF_REG_CONFIG ) & ( _BV(CRCO) | _BV(EN_CRC)) ;
 
     if ( config & _BV(EN_CRC ) )
     {
@@ -293,17 +209,17 @@ nrf_crc_e nrf_get_crc_length( void )
 
 void nrf_set_palevel( nrf_pa_level_e level )
 {
-    uint8_t setup = nrf_read_register( NRF_REG_RF_SETUP );
-    setup &= ~(_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH));
+    uint8_t setup = nrf_read_register( NRF_REG_RF_SETUP ) ;
+    setup &= ~(_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;
 
     // switch uses RAM (evil!)
     if ( level == NRF_PA_MAX )
     {
-        setup |= (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH));
+        setup |= (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;
     }
     else if ( level == NRF_PA_HIGH )
     {
-        setup |= _BV(RF_PWR_HIGH);
+        setup |= _BV(RF_PWR_HIGH) ;
     }
     else if ( level == NRF_PA_LOW )
     {
@@ -316,43 +232,43 @@ void nrf_set_palevel( nrf_pa_level_e level )
     else if ( level == NRF_PA_ERROR )
     {
         // On error, go to maximum PA
-        setup |= (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH));
+        setup |= (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;
     }
 
-    nrf_write_register( NRF_REG_RF_SETUP, setup );
+    nrf_write_register( NRF_REG_RF_SETUP, setup ) ;
 }
 
 nrf_pa_level_e nrf_get_palevel( void )
 {
-    nrf_pa_level_e result = NRF_PA_ERROR;
-    uint8_t power = nrf_read_register(NRF_REG_RF_SETUP) & (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH));
+    nrf_pa_level_e result = NRF_PA_ERROR ;
+    uint8_t power = nrf_read_register(NRF_REG_RF_SETUP) & (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;
 
     // switch uses RAM (evil!)
     if ( power == (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) )
     {
-        result = NRF_PA_MAX;
+        result = NRF_PA_MAX ;
     }
     else if ( power == _BV(RF_PWR_HIGH) )
     {
-        result = NRF_PA_HIGH;
+        result = NRF_PA_HIGH ;
     }
     else if ( power == _BV(RF_PWR_LOW) )
     {
-        result = NRF_PA_LOW;
+        result = NRF_PA_LOW ;
     }
     else
     {
-        result = NRF_PA_MIN;
+        result = NRF_PA_MIN ;
     }
-    return result;
+    return result ;
 }
 
 void nrf_start_listening( void )
 {
-    uint8_t config = nrf_read_register( NRF_REG_CONFIG );
+    uint8_t cfg = nrf_read_register( NRF_REG_CONFIG );
     nrf_write_register( NRF_REG_CONFIG, _BV(NRF_PWR_UP)  |
                                         _BV(NRF_PRIM_RX) |
-                                        config );
+                                        cfg );
     nrf_write_register( NRF_REG_STATUS, _BV(NRF_RX_DR) |
                                         _BV(NRF_TX_DS) |
                                         _BV(NRF_MAX_RT) );
@@ -458,7 +374,6 @@ uint8_t nrf_read_setup_retry( void )
 
 }
 
-
 void nrf_read_tx_addr( uint8_t *address )
 {
     uint8_t i = 0;
@@ -466,12 +381,12 @@ void nrf_read_tx_addr( uint8_t *address )
     nrf_chip_disable();
     nrf_chip_enable();
 
-    spi_write_byte( NRF_SPI, NRF_REG_TX_ADDR );
+    spi_write_byte( NRF_SPI,NRF_REG_TX_ADDR );
     spi_read_byte( NRF_SPI );   //used to clear the previously value in the RX FIFO
     while( i < NRF_TX_ADDR_LEN )
     {
         spi_write_byte( NRF_SPI, 0xFF );    //Dummy to get the data
-        *( address+i) = spi_read_byte( NRF_SPI );
+        *( address+i) = spi_read_byte(NRF_SPI );
         i++;
     }
 
@@ -482,9 +397,9 @@ void nrf_write_tx_addr( uint8_t * tx_addr )
 {
     nrf_chip_disable();
     nrf_chip_enable();
-    spi_write_byte( NRF_SPI, NRF_REG_TX_ADDR | 0x20 );
+    spi_write_byte( NRF_SPI,NRF_REG_TX_ADDR | 0x20 );
     spi_read_byte( NRF_SPI );   //used to clear the previously value in the RX FIFO
-    spi_write_packet( NRF_SPI, tx_addr, NRF_TX_ADDR_LEN );
+    spi_write_packet( NRF_SPI,tx_addr,NRF_TX_ADDR_LEN );
     spi_flush_rx( NRF_SPI );
 
     nrf_chip_disable();
@@ -533,10 +448,22 @@ static const uint8_t child_pipe_enable[] =
 
 void nrf_open_writing_pipe( uint64_t address )
 {
-    nrf_write_packet( NRF_REG_RX_ADDR_P0, (uint8_t*)(&address), 5 );
-    nrf_write_packet( NRF_REG_TX_ADDR, (uint8_t*)(&address), 5 );
-
+    nrf_write_packet( NRF_REG_RX_ADDR_P0, (uint8_t*)&address, 5 );
+    nrf_write_packet( NRF_REG_TX_ADDR, (uint8_t*)&address, 5 );
     nrf_write_register( NRF_REG_RX_PW_P0, payload_size );
+
+#ifdef NRF_DEBUG
+    uint64_t tx_addr = 0;
+    nrf_read_packet( NRF_REG_TX_ADDR, (uint8_t*)&tx_addr, 5 );
+    LOG_INFO( "TX_ADDR: 0x%llX\n", tx_addr );
+
+    uint64_t rx_addr_p0 = 0;
+    nrf_read_packet( NRF_REG_RX_ADDR_P0, (uint8_t*)&rx_addr_p0, 5 );
+    LOG_INFO( "RX_ADDR_P0: 0x%llX\n", rx_addr_p0 );
+
+    uint8_t pl = nrf_read_register( NRF_REG_RX_PW_P0 );
+    LOG_INFO( "NRF_REG_RX_PW_P0: 0x%X\n", pl );
+#endif
     return;
 }
 
@@ -585,25 +512,21 @@ uint8_t nrf_read_payload( uint8_t *buf, uint8_t len )
     return 0;
 }
 
-uint8_t nrf_write_payload( uint8_t *buf, uint8_t len )
+uint8_t nrf_write_payload( const void *buf, uint8_t len, const uint8_t writeType )
 {
-    uint8_t blank_len = dynamic_payloads_enabled ? 0 : (payload_size - len);
+    uint8_t status = 0;
+    uint8_t *data = (uint8_t*)buf;
+//    uint8_t blank_len = dynamic_payloads_enabled ? 0 : (payload_size - len);
 
-    nrf_chip_disable();
     nrf_chip_enable();
-    spi_write_byte( NRF_SPI, NRF_CMD_W_TX_PAYLOAD );
-    while( len-- )
-    {
-        spi_write_byte( NRF_SPI, *buf++ );
-    }
-    while( blank_len-- )
-    {
-        spi_write_byte( NRF_SPI, 0 );
-    }
-
+    spi_write_byte( NRF_SPI, W_TX_PAYLOAD_NO_ACK );
+//    nrf_write_command( W_TX_PAYLOAD );
+//    status = spi_write_byte( NRF_SPI, W_TX_PAYLOAD );
+    spi_read_byte( NRF_SPI );
+    spi_write_packet( NRF_SPI, data, len );
     nrf_chip_disable();
 
-    return 0;
+    return status;
 }
 
 void nrf_tx_pulse( void )
@@ -613,7 +536,7 @@ void nrf_tx_pulse( void )
     nrf_radio_disable();
 }
 
-void nrf_start_write( uint8_t *buf, uint8_t len )
+void nrf_start_write( void *buf, uint8_t len )
 {
     // Transmitter power-up
     uint8_t config = nrf_read_register( NRF_REG_CONFIG );
@@ -621,49 +544,70 @@ void nrf_start_write( uint8_t *buf, uint8_t len )
     delayUs(150);
 
     // Send the payload
-    nrf_write_payload( buf, len );
-
+    //nrf_write_payload( buf, len );
+    nrf_write_payload( buf, len, 0 );
     nrf_tx_pulse();
 }
 
-uint8_t nrf_write( uint8_t *buf, uint8_t len )
+void nrf_start_fast_write( const void *buf, uint8_t len, const uint8_t multicast, uint8_t startTx )
 {
-    uint8_t result = 0;
+    nrf_write_payload( buf, len, multicast ? W_TX_PAYLOAD_NO_ACK : W_TX_PAYLOAD );
+    if( startTx )
+    {
+        nrf_radio_enable();
+    }
+}
 
-    nrf_start_write( buf, len );
+uint8_t nrf_write( void *buf, uint8_t len )
+{
+    // Start writing
+    //nrf_start_write( buf, len );
+    nrf_start_fast_write( buf, len, 1, 1 );
 
-    uint8_t observe_tx;
+    uint32_t sent_at = __millis();
     uint8_t status = 0;
     uint32_t timeout = 500;
-    while( (timeout > 0) && !( status & ( _BV(NRF_TX_DS) | _BV(NRF_MAX_RT) )) )
+    do
     {
-        status = nrf_read_packet( NRF_REG_OBSERVE_TX, &observe_tx, 1 );
-        timeout--;
+        status = nrf_read_register( NRF_REG_STATUS );
+        print_status( status );
     }
-    uint8_t tx_ok = 0;
-    uint8_t tx_fail = 0;
-    what_happened( &tx_ok, &tx_fail, &ack_payload_available );
+    while( ! (status & (_BV(NRF_TX_DS) | _BV(NRF_MAX_RT))) && (__millis() - sent_at < timeout ) );
+    printf( "Sent at %u\n", sent_at );
+    nrf_radio_disable();
 
-    result = tx_ok;
+    status = nrf_read_status();
+    print_status( status );
+    nrf_write_register( NRF_REG_STATUS, NRF_MASK_RX_DR |
+                                        NRF_MASK_TX_DS |
+                                        NRF_MASK_MAX_RT );
+
+    // Max retries exceeded
+    if( status & NRF_MASK_MAX_RT )
+    {
+        printf( "MAX RETIRES\n" );
+        nrf_flush_tx();
+        return 0;
+    }
+
+    return 1;
+}
+
+uint8_t nrf_available( void )
+{
+    uint8_t status = nrf_read_register( NRF_REG_STATUS );
+
+    uint8_t result = (status & NRF_MASK_RX_DR);
+
     if( result )
     {
-        printf( "TX SUCCESS\n" );
+        nrf_write_register( NRF_REG_STATUS, NRF_MASK_RX_DR );
+
+        if( status & NRF_MASK_TX_DS )
+        {
+            nrf_write_register( NRF_REG_STATUS, NRF_MASK_TX_DS );
+        }
     }
-    else
-    {
-        printf( "TX FAIL\n" );
-    }
-
-    if( ack_payload_available )
-    {
-        ack_payload_length = nrf_get_dynamic_payload_size();
-        printf( "[AckPacket]/\n%d", ack_payload_length );
-    }
-
-    nrf_power_off();
-
-    nrf_flush_tx();
-
     return result;
 }
 
@@ -672,9 +616,9 @@ uint8_t nrf_get_dynamic_payload_size( void )
     return nrf_read_register( NRF_CMD_RXPAYLD_W );
 }
 
-uint8_t nrf_read( uint8_t *buf, uint8_t len )
+uint8_t nrf_read( void *buf, uint8_t len )
 {
-    nrf_read_payload( buf, len );
+    nrf_read_payload( (uint8_t*)buf, len );
 
     return nrf_read_register( NRF_REG_FIFO_STATUS ) & _BV( RX_EMPTY );
 }
@@ -693,7 +637,7 @@ void nrf_toggle_features( void )
 {
     nrf_chip_enable();
     spi_write_byte( NRF_SPI, ACTIVATE );
-    spi_write_byte( NRF_SPI, 0x78 );
+    spi_write_byte( NRF_SPI, 0x73 );
     nrf_chip_disable();
     return;
 }
@@ -748,17 +692,19 @@ void nrf_init_test( void )
     buf = (uint8_t*)&raddr;
     printf( "TX ADDRESS GET: 0x%x%x%x%x%x\n", *buf, *(buf+1), *(buf+2), *(buf+3), *(buf+4)  );
 
-    nrf_stop_listening();
-    printf( "NRF STOP LISTENING\n" );
-    nrf_power_off();
-    printf( "NRF POWERED OFF\n" );
-    spi_disable( NRF_SPI );
-    printf( "SPI_1 DISABLED\n" );
+    nrf_module_deinit();
+}
 
-    GPIOIntClear( NRF_IRQ_PORT, NRF_IRQ_PIN );
-    GPIOIntUnregister( NRF_IRQ_PORT );
-    printf("Nordic Test End\n");
-
+void print_status(uint8_t status)
+{
+  printf( "STATUS\t\t = 0x%02x RX_DR=%x TX_DS=%x MAX_RT=%x RX_P_NO=%x TX_FULL=%x\r\n" ,
+           status,
+           (status & _BV(NRF_RX_DR))?1:0,
+           (status & _BV(NRF_TX_DS))?1:0,
+           (status & _BV(NRF_MAX_RT))?1:0,
+           ((status >> RX_P_NO) & 0x07),
+           (status & _BV(TX_FULL))?1:0
+          );
 }
 
 void nordic_interrupt_handler( void )
