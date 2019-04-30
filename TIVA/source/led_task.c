@@ -21,6 +21,7 @@
 #include "priorities.h"
 #include "timers.h"
 
+#include "max7219.h"
 #include "main.h"
 #include "led_task.h"
 #include "uart.h"
@@ -29,6 +30,9 @@
 
 #define MY_STACK_SIZE 256
 
+#define LED_QUEUE_ITEMSIZE   (sizeof(log_msg_t))
+#define LED_QUEUE_LENGTH     (30)
+
 #define LED_D1_PORT    GPIO_PORTN_BASE
 #define LED_D2_PORT    LED_D1_PORT
 
@@ -36,12 +40,16 @@
 #define LED_D2_PIN     GPIO_PIN_1
 
 extern xQueueHandle g_pLoggerQueue;
+extern TimerHandle_t tmp102_timer_handle;
 
 TimerHandle_t led_timer_handle;
 
+xTaskHandle g_pLedTaskHandle;
+
 static void init_10hz( void *params )
 {
-    led_timer_handle = xTimerCreate( "LED_TASK", pdMS_TO_TICKS(100), pdTRUE, (void*)0, led_task_callback );
+
+    led_timer_handle = xTimerCreate( "TOGGLE_TASK", pdMS_TO_TICKS(1000), pdTRUE, (void*)0, led_task_callback );
 
     if( led_timer_handle == NULL)
     {
@@ -84,19 +92,61 @@ void led_task_callback( TimerHandle_t timer )
     }
 }
 
+void led_task( void *params )
+{
+    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(500);
+    static log_msg_t msg_in;
+    msg_in.src = pcTaskGetTaskName( g_pLedTaskHandle );
+    msg_in.level = LOG_WARNING;
+    while(1)
+    {
+        if(xQueueReceive( g_pLedQueue , &msg_in, xMaxBlockTime ) )
+        {
+            switch( msg_in.level )
+            {
+                case LOG_WARNING:
+                {
+                    if( msg_in.src == pcTimerGetTimerName( tmp102_timer_handle ) )
+                    {
+                        char buf[8];
+                        snprintf( buf, 8 * sizeof( char ), "%f", msg_in.data.float_data );
+                        maxSegmentString( buf );
+                    }
+                }
+            }
+        }
+    }
+}
 uint8_t led_task_init( void )
 {
     configASSERT(loggerTaskInitDone == 1);
+    g_pLedQueue = xQueueCreate(LED_QUEUE_LENGTH, LED_QUEUE_ITEMSIZE);
+
+    g_LedMutex = xSemaphoreCreateMutex();
+
+    maxInit( 1, 1, MAX7219_SPI );
 
     /* Configure the GPIO pins*/
     MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_GPION );
     MAP_GPIOPinTypeGPIOOutput(LED_D2_PORT, LED_D2_PIN | LED_D1_PIN);
 
-    if( pdTRUE != xTaskCreate( init_10hz, (const portCHAR *)"LED_TASK", MY_STACK_SIZE, NULL,
+    if( pdTRUE != xTaskCreate( led_task, (const portCHAR *)"LED_TASK", MY_STACK_SIZE, NULL,
+                                 tskIDLE_PRIORITY + PRIO_LED_TASK, &g_pLedTaskHandle ) )
+    {
+        return 1;
+    }
+
+    if( pdTRUE != xTaskCreate( init_10hz, (const portCHAR *)"TOGGLE_TASK", MY_STACK_SIZE, NULL,
                                  tskIDLE_PRIORITY + PRIO_LED_TASK, NULL ) )
     {
         return 1;
     }
+
+    log_msg_t led_msg;
+    led_msg.tickcount = 0;
+    led_msg.src = pcTaskGetTaskName( g_pLedTaskHandle );
+    led_msg.level = LOG_INFO;
+    LOG_TASK_MSG( &led_msg, "INITIALIZED" );
 
     return 0;
 }

@@ -206,6 +206,7 @@ static inline uint8_t nrf_write_packet( uint8_t reg, const uint8_t *buf, uint8_t
 }
 
 
+void nrf_module_deinit( void );
 /*!
  * @brief - Initialize the nrf module
  * Initialized the GPIO connections pertaining to the Nordic module

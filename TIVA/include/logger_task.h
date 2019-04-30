@@ -10,8 +10,6 @@
 #ifndef LOGGER_TASK_H_
 #define LOGGER_TASK_H_
 
-//#include "FreeRTOS.h"
-//#include "semphr.h"
 #include "uart.h"
 
 #define INFO    "[INFO]"
@@ -43,7 +41,6 @@ typedef struct
 {
     TickType_t tickcount;
     log_level_e level;
-    //log_msg_e type;
     const char *src;
     char msg[25];
     union data
@@ -77,7 +74,7 @@ xSemaphoreHandle g_LoggerMutex;
     do{ \
         xSemaphoreTake( g_LoggerMutex, portMAX_DELAY ); \
         snprintf( (p_log)->msg, sizeof( (p_log)->msg), fmt, ##__VA_ARGS__); \
-        logger_queue( g_pLoggerQueue, p_log, sizeof( p_log ) ); \
+        enqueue( g_pLoggerQueue, p_log, sizeof( p_log ) ); \
         xSemaphoreGive( g_LoggerMutex ); \
     }while(0)
 
@@ -85,11 +82,11 @@ xSemaphoreHandle g_LoggerMutex;
 /*!
  * @brief Add logging message to queue
  *
- * @param[in]   logger queue handle
+ * @param[in]   queue handle
  * @param[in]   message to queue
  * @param[in]   size of message
  */
-void logger_queue( QueueHandle_t queue, const log_msg_t *msg_out, size_t size );
+void enqueue( QueueHandle_t queue, const log_msg_t *msg_out, size_t size );
 
 /*!
  * @brief Logger Task function

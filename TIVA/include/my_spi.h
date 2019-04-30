@@ -32,7 +32,8 @@ typedef enum
     SPI_0,
     SPI_1,
     SPI_2,
-    SPI_3
+    SPI_3,
+    SPI_MAX
 } spi_e;
 
 extern uint32_t g_sysClock;
