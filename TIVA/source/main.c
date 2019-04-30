@@ -31,9 +31,7 @@
 #include "tmp102_task.h"
 #include "alert_task.h"
 #include "apds9301_task.h"
-#include "apds9960_task.h"
 #include "node_comm_task.h"
-#define _APDS_
 uint32_t g_sysClock = CLOCK_FREQ;
 
 //*****************************************************************************
@@ -89,11 +87,6 @@ int main( void )
         while(1);
     }
 
-//    if( 0 != apds9960_task_init() )
-//    {
-//        puts( "ERROR - APDS9960 TASK INIT\n" );
-//        while(1);
-//    }
     if( 0 != temp_task_init() )
     {
         puts( ERROR " TEMPERATURE TASK INIT\n" );
