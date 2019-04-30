@@ -35,9 +35,11 @@ typedef enum
 typedef enum
 {
     NRF_DR_1MBPS = 0,
-    NRF_DR_2MBPS = 1
-
+    NRF_DR_2MBPS = 1,
+    NRF_DR_250KBPS,
+    NRF_DR_MAX
 } nrf_data_rate_e;
+
 
 typedef enum
 {
@@ -51,7 +53,8 @@ typedef enum
 {
     NRF_CRC_DISABLED = 0,
     NRF_CRC_8,
-    NRF_CRC_16
+    NRF_CRC_16,
+    NRF_CRC_MAX
 } nrf_crc_e;
 
 typedef enum
@@ -465,5 +468,6 @@ void nrf_init_test( void );
  * @returns void
  */
 void print_status( uint8_t status );
+void print_details( void );
 
 #endif   /* _NRF_MODULE_H */

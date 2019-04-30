@@ -16,6 +16,19 @@
 #include "driverlib/interrupt.h"
 #include "driverlib/ssi.h"
 
+const char * const datarate_names [ NRF_DR_MAX ] =
+{
+    "NRF_DR_1MBPS",
+    "NRF_DR_2MBPS",
+    "NRF_DR_250KBPS",
+};
+const char * const crc_names[ NRF_CRC_MAX ] =
+{
+    "NRF_CRC_DISABLED",
+    "NRF_CRC_8",
+    "NRF_CRC_16",
+};
+
 volatile uint8_t tx_configured = 0;
 volatile uint8_t rx_configured = 0;
 
@@ -37,6 +50,96 @@ extern uint32_t g_sysClock;
 void nordic_interrupt_handler( void );
 
 static interrupt_handler_t user_handler;
+
+void print_address_register( const char *name, uint64_t addr )
+{
+    uint8_t* buf = (uint8_t*)&addr + 4;
+    printf( "%s: 0x%x%x%x%x%x\n", name, *buf, *(buf-1), *(buf-2), *(buf-3), *(buf-4)  );
+}
+
+nrf_data_rate_e nrf_get_datarate( void )
+{
+    nrf_data_rate_e result;
+    uint8_t dr = nrf_read_register( NRF_REG_RF_SETUP ) & (_BV(RF_DR_LOW) | _BV(RF_DR_HIGH));
+
+    if( dr == _BV(RF_DR_LOW) )
+    {
+        result = NRF_DR_250KBPS;
+    }
+    else if( dr == _BV(RF_DR_HIGH) )
+    {
+        result = NRF_DR_2MBPS;
+    }
+    else
+    {
+        result = NRF_DR_1MBPS;
+    }
+    return result;
+}
+
+
+void print_details( void )
+{
+    print_status( nrf_read_register( NRF_REG_STATUS ) );
+
+    uint64_t addr = 0;
+    nrf_read_packet( NRF_REG_RX_ADDR_P0, (uint8_t*)&addr, 5 );
+    print_address_register( "NRF_REG_RX_ADDR_P0", addr );
+    nrf_read_packet( NRF_REG_RX_ADDR_P1, (uint8_t*)&addr, 5 );
+    print_address_register( "NRF_REG_RX_ADDR_P1", addr );
+    nrf_read_packet( NRF_REG_RX_ADDR_P2, (uint8_t*)&addr, 5 );
+    print_address_register( "NRF_REG_RX_ADDR_P2", addr );
+    nrf_read_packet( NRF_REG_RX_ADDR_P3, (uint8_t*)&addr, 5 );
+    print_address_register( "NRF_REG_RX_ADDR_P3", addr );
+    nrf_read_packet( NRF_REG_RX_ADDR_P4, (uint8_t*)&addr, 5 );
+    print_address_register( "NRF_REG_RX_ADDR_P4", addr );
+    nrf_read_packet( NRF_REG_RX_ADDR_P5, (uint8_t*)&addr, 5 );
+    print_address_register( "NRF_REG_RX_ADDR_P5", addr );
+
+    nrf_read_packet( NRF_REG_TX_ADDR, (uint8_t*)&addr, 5 );
+    print_address_register( "NRF_REG_TX_ADDR", addr );
+
+    uint8_t byte = 0;
+    byte = nrf_read_register( NRF_REG_RX_PW_P0 );
+    printf( "NRF_REG_RX_PW_P0 = 0x%x\n", byte );
+    byte = nrf_read_register( NRF_REG_RX_PW_P1 );
+    printf( "NRF_REG_RX_PW_P1 = 0x%x\n", byte );
+    byte = nrf_read_register( NRF_REG_RX_PW_P2 );
+    printf( "NRF_REG_RX_PW_P2 = 0x%x\n", byte );
+    byte = nrf_read_register( NRF_REG_RX_PW_P3 );
+    printf( "NRF_REG_RX_PW_P3 = 0x%x\n", byte );
+    byte = nrf_read_register( NRF_REG_RX_PW_P4 );
+    printf( "NRF_REG_RX_PW_P4 = 0x%x\n", byte );
+    byte = nrf_read_register( NRF_REG_RX_PW_P5 );
+    printf( "NRF_REG_RX_PW_P5 = 0x%x\n", byte );
+
+
+    byte = nrf_read_register( NRF_REG_EN_AA );
+    printf( "NRF_REG_EN_AA = 0x%x\n", byte );
+
+    byte = nrf_read_register( NRF_REG_EN_RXADDR );
+    printf( "NRF_REG_EN_RXADDR = 0x%x\n", byte );
+
+    byte = nrf_read_register( NRF_REG_RF_CH );
+    printf( "NRF_REG_RF_CH = 0x%x\n", byte );
+
+    byte = nrf_read_register( NRF_REG_RF_SETUP );
+    printf( "NRF_REG_RF_SETUP = 0x%x\n", byte );
+
+    byte = nrf_read_register( NRF_REG_CONFIG );
+    printf( "NRF_REG_CONFIG = 0x%x\n", byte );
+
+    byte = nrf_read_register( NRF_REG_DYNPD );
+    printf( "NRF_REG_DYNPD = 0x%x\n", byte );
+
+    byte = nrf_read_register( NRF_REG_FEATURE );
+    printf( "NRF_REG_FEATURE = 0x%x\n", byte );
+    printf( "DATA RATE\t = %s\n", datarate_names[ nrf_get_datarate() ] );
+
+    printf( "CRC LENGTH\t = %s\n", crc_names[ nrf_get_crc_length() ] );
+
+}
+
 
 void nrf_module_deinit( void )
 {
@@ -93,7 +196,8 @@ uint8_t nrf_module_init( void )
 
 //    nrf_set_palevel( NRF_PA_MAX );
 
-    nrf_set_datarate( NRF_DR_1MBPS );
+//    nrf_set_datarate( NRF_DR_1MBPS );
+    nrf_set_datarate( NRF_DR_250KBPS );
 
 //    nrf_set_crc_length( NRF_CRC_16 );
 
@@ -126,7 +230,11 @@ uint8_t nrf_set_datarate( nrf_data_rate_e speed )
 
     setup &= ~(_BV(RF_DR_LOW) | _BV(RF_DR_HIGH) );
 
-    if( NRF_DR_2MBPS == speed )
+    if( NRF_DR_250KBPS == speed )
+    {
+        setup |= _BV( RF_DR_LOW );
+    }
+    else if( NRF_DR_2MBPS == speed )
     {
         setup |= _BV( RF_DR_HIGH );
     }
@@ -291,8 +399,8 @@ void nrf_start_listening( void )
   }
 
   // Flush buffers
-  nrf_flush_rx();
-  nrf_flush_tx();
+  //nrf_flush_rx();
+  //nrf_flush_tx();
 
   // Go!
   nrf_radio_enable();
@@ -305,8 +413,11 @@ void nrf_start_listening( void )
 void nrf_stop_listening( void )
 {
     nrf_radio_disable();
+
+    delayUs(200);
     nrf_flush_tx();
     nrf_flush_rx();
+    nrf_write_register( NRF_REG_CONFIG, nrf_read_register( NRF_REG_CONFIG ) & ~_BV(NRF_PRIM_RX) );
     return;
 }
 
@@ -473,7 +584,7 @@ void nrf_open_writing_pipe( uint64_t address )
     LOG_INFO( "RX_ADDR_P0: 0x%llX\n", rx_addr_p0 );
 
     uint8_t pl = nrf_read_register( NRF_REG_RX_PW_P0 );
-    LOG_INFO( "NRF_REG_RX_PW_P0: 0x%X\n", pl );
+    LOG_INFO( "NRF_REG_RX_PW_P0: 0x%x\n", pl );
 #endif
     return;
 }
