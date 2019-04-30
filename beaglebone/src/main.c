@@ -18,16 +18,7 @@
  * =================================================================================
  */
 
-#include "apds9301_task.h"
-//#include "apds9960_task.h"
-//#include "tmp102_task.h"
-#include "logger.h"
-#include "common.h"
-#include "watchdog.h"
-#include "socket.h"
-#include "led.h"
 
-#include "nrf_module.h"
 #include <fcntl.h>
 #include <signal.h>
 #include <errno.h>
@@ -39,14 +30,21 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "logger.h"
+#include "common.h"
+#include "watchdog.h"
+#include "led.h"
 
-void* (*thread_entry_fn[ NUM_THREADS ])(void *) = {
-   logger_fn,
-   apds9301_fn,
-//   tmp102_fn,
-//   apds9960_fn,
-   socket_fn,
-   watchdog_fn,
+#include "nrf_module.h"
+#include "comm_sender_task.h"
+#include "node_interface.h"
+#include "communication_interface.h"
+
+void* (*thread_entry_fn[ NUM_THREADS ])(void *) =
+{
+    logger_fn,
+    comm_sender_task_fn,
+    watchdog_fn,
 };
 
 /**
@@ -120,10 +118,6 @@ int main( int argc, char *argv[] )
 
 
    led_on( LED2_BRIGHTNESS );
-
-
-
-   nrf_init_test();
 
 
    set_trigger( LED2_TRIGGER, "timer" );
