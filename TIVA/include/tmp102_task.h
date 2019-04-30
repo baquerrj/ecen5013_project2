@@ -10,6 +10,17 @@
 
 #include "timers.h"
 
+
+#define POST_TEMP_WARNING( p_log, fmt, ... ) \
+    do{ \
+        xSemaphoreTake( g_LedMutex, portMAX_DELAY ); \
+        snprintf( (p_log)->msg, sizeof( (p_log)->msg), fmt, ##__VA_ARGS__); \
+        enqueue( g_pLedQueue, p_log, sizeof( p_log ) ); \
+        xSemaphoreGive( g_LedMutex ); \
+    }while(0)
+
+
+
 /*!
  * @brief Timer Callback for Temperature Sensor Task
  *

@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "driverlib/rom_map.h"
 #include "driverlib/rom.h"
@@ -24,6 +25,7 @@
 #include "uart.h"
 #include "logger_task.h"
 
+#include "max7219.h"
 #include "nRF240L.h"
 #include "nrf_module.h"
 
@@ -32,6 +34,7 @@
 #include "alert_task.h"
 #include "apds9301_task.h"
 #include "node_comm_task.h"
+
 uint32_t g_sysClock = CLOCK_FREQ;
 
 //*****************************************************************************
@@ -62,14 +65,13 @@ int main( void )
     /* Configure peripherals */
     UART0_config( BAUD_115200, g_sysClock );    /* Configure UART0 with Baud Rate 115200 */
 
+
+
     if( 0 != logger_task_init() )
     {
         puts( ERROR " LOGGER TASK INIT\n" );
         while(1);
     }
-
-    //nrf_init_test();
-    //while(1);
 
     if( 0 != node_comm_task_init() )
     {

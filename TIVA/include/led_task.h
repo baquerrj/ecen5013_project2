@@ -11,13 +11,11 @@
 #define LED_TASK_H_
 
 #include "timers.h"
-/*!
- * @brief Timer Callback for LED Task
- *
- * @param timer - FreeRTOS TimerHandle_t associated with task
- * @returns void
- */
-void led_task_callback( TimerHandle_t timer );
+#include "task.h"
+
+
+xSemaphoreHandle    g_LedMutex;
+xQueueHandle        g_pLedQueue;
 
 /*!
  * @brief Initialize 10Hz LED task
@@ -27,6 +25,7 @@ void led_task_callback( TimerHandle_t timer );
  */
 uint8_t led_task_init( void );
 
+void led_task_callback( TimerHandle_t timer );
 
 
 #endif /* LED_TASK_H_ */

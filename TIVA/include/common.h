@@ -59,7 +59,7 @@ typedef enum
     NODE_MSG_ID_MAX
 } node_message_e;
 
-const char* const node_message_id_names[ NODE_MSG_ID_MAX ] =
+static const char* const node_message_id_names[ NODE_MSG_ID_MAX ] =
 {
     (const char*)"ALIVE",
     (const char*)"INFO",
@@ -75,8 +75,6 @@ const char* const node_message_id_names[ NODE_MSG_ID_MAX ] =
     (const char*)"GET_CLIENT_BOARD_TYPE",
     (const char*)"GET_CLIENT_UID",
 };
-
-
 
 typedef struct
 {

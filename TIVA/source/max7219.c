@@ -20,6 +20,7 @@
 #include "driverlib/gpio.h"
 #include "max7219.h"
 
+extern const uint32_t SPI[4];
 
 // MAX7219 LED Matrix controller library
 // Copyright (c) 2018 BitBank Software, Inc.
@@ -170,14 +171,10 @@ const uint8_t ucSmallFont[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3e,0x45,0x51
   0x4c,0x00,0x00,0x08,0x3e,0x41,0x41,0x00,0x00,0x00,0x00,0x77,0x00,0x00,0x00,0x00,
   0x41,0x41,0x3e,0x08,0x00,0x02,0x01,0x02,0x01,0x00,0x00,0x3c,0x26,0x23,0x26,0x3c};
 
-static uint8_t iNumControllers, iCSPin;
+static uint8_t iNumControllers;
+//static uint8_t iCSPin;
 static spi_e my_spi = SPI_MAX;
 
-void maxSetAddress( uint8_t reg )
-{
-    GPIOPinWrite( MAX7219_CS_PORT, MAX7219_CS_PIN, 0 );
-    spi_write_byte( my_spi, reg );
-}
 //
 // Transmit a sequence of N x 16 bits to the cascaded controllers
 //
@@ -191,8 +188,11 @@ void maxSendSequence(uint8_t *pSequence, uint8_t len)
 {
   // The CS line stays low throughout a "transaction". Send all of the control uint8_ts for all of the chained
   // controllers in a single transaction. When the CS line rises, the data will be latched
-    maxSetAddress( *pSequence );
+    GPIOPinWrite( MAX7219_CS_PORT, MAX7219_CS_PIN, 0 );
+    uint8_t reg = *pSequence;
+    spi_write_byte( my_spi, reg );
     pSequence++;
+    len--;
     spi_write_packet( my_spi, pSequence, len );
     GPIOPinWrite( MAX7219_CS_PORT, MAX7219_CS_PIN, 1 );
 } /* maxSendSequence() */
@@ -202,47 +202,47 @@ void maxSendSequence(uint8_t *pSequence, uint8_t len)
 //
 void maxPowerUp(uint8_t bPowerUp)
 {
-uint8_t i;
-uint8_t *d, bTemp[32]; // up to 16 controllers
-  d = bTemp;
-  for (i=0; i<iNumControllers; i++)
-  {
-     *d++ = 0x0C; // power up/down
-     *d++ = bPowerUp;
-  }
-  maxSendSequence(bTemp, iNumControllers * 2); // send the power up/down instruction
+    uint8_t i;
+    uint8_t *d, bTemp[32]; // up to 16 controllers
+    d = bTemp;
+    for (i=0; i<iNumControllers; i++)
+    {
+        *d++ = 0x0C;
+        *d++ = bPowerUp;
+    }
+    maxSendSequence(bTemp, iNumControllers * 2); // send the power up/down instruction
 } /* maxPowerUp() */
-//
+
 // Set the intensity (duty cycle of PWM signal) for the LED segments
 // valid values are 0 (dimmest) to 15 (brightest)
 //
 void maxSetIntensity(uint8_t bIntensity)
 {
-uint8_t *d, bTemp[32];
-uint8_t i;
+    uint8_t *d, bTemp[32];
+    uint8_t i;
 
-  d = bTemp;
-  for (i=0; i<iNumControllers; i++)
-  {
-      *d++ = 0x0A; // set intensity
-      *d++ = bIntensity;
-  } // for i
-  maxSendSequence(bTemp, iNumControllers * 2);
+    d = bTemp;
+    for (i=0; i<iNumControllers; i++)
+    {
+        *d++ = 0x0A; // set intensity
+        *d++ = bIntensity;
+    } // for i
+    maxSendSequence(bTemp, iNumControllers * 2);
 } /* maxSetIntensity() */
 //
 // Set the segment decode mode (BCD or none)
 //
 void maxSetSegmentMode(uint8_t bMode)
 {
-uint8_t i, *d, bTemp[32];
+    uint8_t i, *d, bTemp[32];
 
-  d = bTemp;
-  for (i=0; i<iNumControllers; i++)
-  {
-      *d++ = 0x09; // decode mode
-      *d++ = (bMode) ? 0xff : 0x00;
-  } // for i
-  maxSendSequence(bTemp, iNumControllers * 2); // send the scan limit instructions to all controllers
+    d = bTemp;
+    for (i=0; i<iNumControllers; i++)
+    {
+        *d++ = 0x09; // decode mode
+        *d++ = (bMode) ? 0xff : 0x00;
+    } // for i
+    maxSendSequence(bTemp, iNumControllers * 2); // send the scan limit instructions to all controllers
 } /* maxSetSegmentMode() */
 
 //
@@ -252,20 +252,20 @@ uint8_t i, *d, bTemp[32];
 //
 void maxSendImage(uint8_t *pImage, int iPitch)
 {
-uint8_t i, j;
-uint8_t *s, *d, bTemp[32];
+    uint8_t i, j;
+    uint8_t *s, *d, bTemp[32];
 
-   for (j=0; j<8; j++) // 8 rows to transmit
-   {
-      s = &pImage[iPitch * j];
-      d = bTemp;
-      for (i=0; i<iNumControllers; i++)
-      {
-         *d++ = (j+1); // row number is the "instruction"
-         *d++ = *s++; // image data
-      } // for each controller
-      maxSendSequence(bTemp, iNumControllers * 2);
-   } // for each row of image
+    for (j=0; j<8; j++) // 8 rows to transmit
+    {
+        s = &pImage[iPitch * j];
+        d = bTemp;
+        for (i=0; i<iNumControllers; i++)
+        {
+            *d++ = (j+1); // row number is the "instruction"
+            *d++ = *s++; // image data
+        } // for each controller
+        maxSendSequence(bTemp, iNumControllers * 2);
+    } // for each row of image
 } /* maxSendImage() */
 
 //
@@ -275,15 +275,15 @@ uint8_t *s, *d, bTemp[32];
 //
 void maxSetTestMode(uint8_t bOn)
 {
-uint8_t i, *d, bTemp[32];
+    uint8_t i, *d, bTemp[32];
 
-  d = bTemp;
-  for (i=0; i<iNumControllers; i++)
-  {
-      *d++ = 0x0F; // test mode
-      *d++ = bOn;
-  } // for i
-  maxSendSequence(bTemp, iNumControllers * 2); // send the scan limit instructions to all controllers
+    d = bTemp;
+    for (i=0; i<iNumControllers; i++)
+    {
+        *d++ = 0x0F; // test mode
+        *d++ = bOn;
+    } // for i
+    maxSendSequence(bTemp, iNumControllers * 2); // send the scan limit instructions to all controllers
 } /* maxSetTestMode() */
 //
 // Number of "digits/rows" to control
@@ -291,15 +291,15 @@ uint8_t i, *d, bTemp[32];
 //
 void maxSetLimit(uint8_t bLimit)
 {
-uint8_t i, *d, bTemp[32];
+    uint8_t i, *d, bTemp[32];
 
-  d = bTemp;
-  for (i=0; i<iNumControllers; i++)
-  {
-      *d++ = 0x0B; // set scan limit
-      *d++ = (bLimit - 1);
-  } // for i
-  maxSendSequence(bTemp, iNumControllers * 2); // send the scan limit instructions to all controllers
+    d = bTemp;
+    for (i=0; i<iNumControllers; i++)
+    {
+        *d++ = 0x0B; // set scan limit
+        *d++ = (bLimit - 1);
+    } // for i
+    maxSendSequence(bTemp, iNumControllers * 2); // send the scan limit instructions to all controllers
 } /* maxSetLimit() */
 
 //
@@ -308,8 +308,8 @@ uint8_t i, *d, bTemp[32];
 //
 void maxSegmentString(char *pString)
 {
-unsigned char ucTemp[4];
-int iDigit;
+    unsigned char ucTemp[4];
+    int iDigit;
 
     memset(ucTemp, 0, sizeof(ucTemp));
     iDigit = 0;
@@ -348,44 +348,44 @@ int iDigit;
 //
 void maxDrawString(char *pString, uint8_t *pImage, uint8_t iPitch, uint8_t bSmall)
 {
-uint8_t b, bMask, i, j, *d, bCol;
-const uint8_t *pFont;
-const uint8_t *s;
-int iWidth;
+    uint8_t b, bMask, i, j, *d, bCol;
+    const uint8_t *pFont;
+    const uint8_t *s;
+    int iWidth;
 
-   d = pImage;
-   bCol = 0;
-   if (bSmall)
-   {
-      pFont = ucSmallFont;
-      iWidth = 6;
-   }
-   else
-   {
-      pFont = ucFont;
-      iWidth = 8;
-   }
-   while (*pString)
-   {
-      b = *pString++;
-      s = &pFont[(int)b * iWidth]; // 6 or 8 uint8_ts per character in ASCII order
-      for (i=0; i<iWidth; i++) // column
-      {
-         bMask = (0x80 >> (bCol & 7));
-         b = *s++; // current font uint8_t
-         for (j=0; j<8; j++) // bit number of source becomes destination row
-         {
-            if (b & 1) // start from LSB
-               d[j*iPitch] |= bMask;
-            else
-               d[j*iPitch] &= ~bMask;
-            b >>= 1; // shift down font uint8_t
-         } // for j
-         bCol++;
-         if ((bCol & 7) == 0) // next uint8_t
-            d++;
-      } // for i
-   } // while string
+    d = pImage;
+    bCol = 0;
+    if (bSmall)
+    {
+       pFont = ucSmallFont;
+       iWidth = 6;
+    }
+    else
+    {
+       pFont = ucFont;
+       iWidth = 8;
+    }
+    while (*pString)
+    {
+       b = *pString++;
+       s = &pFont[(int)b * iWidth]; // 6 or 8 uint8_ts per character in ASCII order
+       for (i=0; i<iWidth; i++) // column
+       {
+          bMask = (0x80 >> (bCol & 7));
+          b = *s++; // current font uint8_t
+          for (j=0; j<8; j++) // bit number of source becomes destination row
+          {
+             if (b & 1) // start from LSB
+                d[j*iPitch] |= bMask;
+             else
+                d[j*iPitch] &= ~bMask;
+             b >>= 1; // shift down font uint8_t
+          } // for j
+          bCol++;
+          if ((bCol & 7) == 0) // next uint8_t
+             d++;
+       } // for i
+    } // while string
 } /* maxDrawString() */
 
 //
@@ -396,65 +396,60 @@ int iWidth;
 //
 void maxScrollBitmap(uint8_t *pBitmap, int iPitch, int iScroll)
 {
-uint8_t b, bEdge, *s;
-int col, row;
+    uint8_t b, bEdge, *s;
+    int col, row;
 
-  if (iScroll > 0) // scroll left
-  {
-     for (row=0; row<8; row++)
-     {
-        s = &pBitmap[row * iPitch];
-        bEdge = s[0] >> (8-iScroll);
-        for (col=0; col<iPitch; col++)
+    if (iScroll > 0) // scroll left
+    {
+        for (row=0; row<8; row++)
         {
-           b = s[col] << iScroll;
-           b |= (col == iPitch-1) ? bEdge : (s[col+1] >> (8-iScroll));
-           s[col] = b;
-        } // for col
-     } // for row
-  }
-  else // scroll right
-  {
-     iScroll = 0 - iScroll; // make it a positive number
-     for (row=0; row<8; row++)
-     {
-        s = &pBitmap[row * iPitch];
-        bEdge = s[iPitch-1] << (8-iScroll);
-        for (col=iPitch-1; col>=0; col--)
+            s = &pBitmap[row * iPitch];
+            bEdge = s[0] >> (8-iScroll);
+            for (col=0; col<iPitch; col++)
+            {
+                b = s[col] << iScroll;
+                b |= (col == iPitch-1) ? bEdge : (s[col+1] >> (8-iScroll));
+                s[col] = b;
+            } // for col
+        } // for row
+    }
+    else // scroll right
+    {
+        iScroll = 0 - iScroll; // make it a positive number
+        for (row=0; row<8; row++)
         {
-           b = s[col] >> iScroll;
-           b |= (col == 0) ? bEdge : (s[col-1] << (8-iScroll));
-           s[col] = b;
-        } // for col
-     } // for row
-  }
-} /* maxScrollBitmap() */
-//
+            s = &pBitmap[row * iPitch];
+            bEdge = s[iPitch-1] << (8-iScroll);
+            for (col=iPitch-1; col>=0; col--)
+            {
+                b = s[col] >> iScroll;
+                b |= (col == 0) ? bEdge : (s[col-1] << (8-iScroll));
+                s[col] = b;
+            } // for col
+        } // for row
+    }
+    } /* maxScrollBitmap() */
+
 // Initialize the controllers
 //
-int maxInit(uint8_t iNum, uint8_t bDecodeMode, spi_e iChannel, uint8_t iSelect)
+int maxInit(uint8_t iNum, uint8_t bDecodeMode, spi_e iChannel )
 {
     my_spi = iChannel;
     spi_clock_init( my_spi );
     spi_init( my_spi );
 
-  iNumControllers = iNum;
-  iCSPin = iSelect; // header pin number used for select line
-  //file_spi = AIOOpenSPI(iChannel, 2000000); // 2Mhz is a reasonable speed
+    iNumControllers = iNum;
 
-  MAP_SysCtlPeripheralEnable( MAX7219_CS_SYSCLT_PORT );
-  GPIOPinTypeGPIOOutput( MAX7219_CS_PORT, MAX7219_CS_PIN );
-  GPIOPinWrite( MAX7219_CS_PORT, MAX7219_CS_PIN, MAX7219_CS_PIN );
+    MAP_SysCtlPeripheralEnable( MAX7219_CS_SYSCLT_PORT );
+    GPIOPinTypeGPIOOutput( MAX7219_CS_PORT, MAX7219_CS_PIN );
+    GPIOPinWrite( MAX7219_CS_PORT, MAX7219_CS_PIN, 1 );
 
- // AIOAddGPIO(iCSPin, GPIO_OUT);
-  //AIOWriteGPIO(iCSPin, 1);
-
-  maxPowerUp(1); // turn on the LED controllers
-  maxSetLimit(8); // tell it to display 8 rows of 8 pixels
-  maxSetIntensity(0); // set the minimum intensity to start (1/32 duty cycle)
-  maxSetSegmentMode(bDecodeMode); // sets BCD (7-segment), or none (pixels
-  maxSetTestMode(0); // disable test mode (it can accidentally get set at power up)
-  return 0;
+    maxPowerUp(1); // turn on the LED controllers
+    maxSetLimit(8); // tell it to display 8 rows of 8 pixels
+    maxSetIntensity(0); // set the minimum intensity to start (1/32 duty cycle)
+    maxSetSegmentMode(bDecodeMode); // sets BCD (7-segment), or none (pixels
+    maxSetTestMode(0); // disable test mode (it can accidentally get set at power up)
+    return 0;
 } /* maxInit() */
 
 void maxShutdown(void)

@@ -3,9 +3,12 @@
 
 #include "my_spi.h"
 
+
 #define MAX7219_CS_SYSCLT_PORT      SYSCTL_PERIPH_GPIOE
 #define MAX7219_CS_PORT             GPIO_PORTE_BASE
 #define MAX7219_CS_PIN              GPIO_PIN_3
+
+#define MAX7219_SPI                 SPI_0
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -71,16 +74,10 @@ void maxScrollBitmap(uint8_t *pBitmap, int iPitch, int iScroll);
 // Initialize the controllers
 // returns 0 for success, -1 for failure
 //
-int maxInit(uint8_t iNum, uint8_t bDecodeMode, spi_e iChannel, uint8_t iSelect);
+int maxInit(uint8_t iNum, uint8_t bDecodeMode, spi_e iChannel );
 //
 // Turn off the LED controllers and free resources
 //
 void maxShutdown(void);
-
-void MAX7219_writeData( uint8_t data_register, uint8_t data);
-
-void MAX7219_clearDisplay( void );
-
-void MAX7219_displayNumber(volatile long number);
 
 #endif // __MAX7219_LIBRARY__

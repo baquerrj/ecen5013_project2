@@ -18,6 +18,7 @@
 #include "nrf_module.h"
 #include "logger_task.h"
 #include "node_comm_task.h"
+#include "communication_interface.h"
 
 #define MY_STACK_SIZE   (256)
 extern xQueueHandle g_pLoggerQueue;
@@ -34,9 +35,7 @@ typedef enum
 
 void comm_task( void *params )
 {
-//    const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 500 );
-//    BaseType_t xResult;
-//    uint32_t alert_type = 0;
+
     static log_msg_t msg_out;
     msg_out.src = pcTaskGetTaskName( g_pNodeCommTaskHandle );
     msg_out.level = LOG_INFO;

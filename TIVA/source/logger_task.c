@@ -29,7 +29,7 @@ xQueueHandle g_pLoggerQueue;
 
 xTaskHandle g_pLoggerTask;
 
-void logger_queue( QueueHandle_t queue, const log_msg_t *msg_out, size_t size )
+void enqueue( QueueHandle_t queue, const log_msg_t *msg_out, size_t size )
 {
     if( pdPASS != xQueueSend( queue, (void*)msg_out, portMAX_DELAY ) )
     {
