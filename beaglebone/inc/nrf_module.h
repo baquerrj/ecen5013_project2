@@ -23,7 +23,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "my_spi.h"
+#include "spi.h"
 #include "nRF240L.h"
 #include "delay.h"
 

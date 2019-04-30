@@ -1,5 +1,5 @@
 /*!
- * @file  my_spi.c
+ * @file  spi.c
  * @brief 
  *
  * <+DETAILED+>
@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "my_spi.h"
+#include "spi.h"
 
 
 spi_t SPI[ 2 ] = { NULL, NULL };

@@ -1,5 +1,5 @@
 /*!
- * @file  my_spi.h
+ * @file  spi.h
  * @brief 
  *
  *  <+DETAILED+>
@@ -17,8 +17,8 @@
  */
 
 
-#ifndef  _MY_SPI_H
-#define  _MY_SPI_H
+#ifndef  _SPI_H
+#define  _SPI_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -108,4 +108,4 @@ int8_t spi_read_packet( spi_e spi, uint8_t* p, size_t len );
 
 
 
-#endif   /* _MY_SPI_H */
+#endif   /* _SPI_H */
