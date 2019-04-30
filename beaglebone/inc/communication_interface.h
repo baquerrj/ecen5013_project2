@@ -1,6 +1,6 @@
 /*!
  * @file  communication_interface.h
- * @brief 
+ * @brief
  *
  *  <+DETAILED+>
  *
@@ -22,10 +22,14 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
 #include "common.h"
-#include "my_uart.h"
 #include "nrf_module.h"
+#include "uart.h"
+#define TIVA_BOARD
+
+#ifdef TIVA_BOARD
+#define TIVA_UART   UART_6
+#endif
 
 typedef enum
 {
@@ -37,9 +41,9 @@ typedef enum
 volatile uint8_t comm_type;
 
 #ifdef TIVA_BOARD
-static inline void comm_init_uart()
+static inline void comm_init_uart( void )
 {
-    uart3_config( baud_921600 );
+    uart_config( TIVA_UART, BAUD_921600 );
 }
 
 static inline void comm_deinit_uart( int fd ) {}
@@ -47,21 +51,20 @@ static inline void comm_deinit_uart( int fd ) {}
 
 static inline void comm_send_uart_raw( uint8_t* packet, size_t len )
 {
-    uart3_putraw( packet, len );
+    uart_putraw( TIVA_UART, packet, len );
 }
 
 static inline void comm_send_uart( node_message_t *p_comm_object )
 {
-    uart3_putraw( (uint8_t*)p_comm_object, sizeof( node_message_t ) );
+    uart_putraw( TIVA_UART, (uint8_t*)p_comm_object, sizeof( node_message_t ) );
 }
 
 static inline size_t comm_recv_uart( node_message_t *p_comm_object )
 {
-    return uart3_getraw( (uint8_t*)p_comm_object, sizeof( node_message_t ) );
+    return uart_getraw( TIVA_UART, (uint8_t*)p_comm_object, sizeof( node_message_t ) );
 }
 
 #else
-//For BBG
 
 static inline int comm_init_uart()
 {
