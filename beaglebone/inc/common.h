@@ -181,7 +181,7 @@ typedef enum
     NODE_MSG_ID_MAX
 } node_message_e;
 
-extern const char* const node_message_names[ NODE_MSG_ID_MAX ];
+extern const char* const node_message_id_names[ NODE_MSG_ID_MAX ];
 
 typedef struct
 {
@@ -251,7 +251,7 @@ static inline const char* get_task_name( task_e task_id )
  */
 static inline const char* get_message_id_name( node_message_e msg_id )
 {
-    return node_message_names[ msg_id ];
+    return node_message_id_names[ msg_id ];
 }
 
 /*!
