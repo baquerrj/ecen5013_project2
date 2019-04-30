@@ -1,5 +1,5 @@
 /*!
- * @file  my_uart.h
+ * @file  uart.h
  * @brief 
  *
  *  <+DETAILED+>
@@ -17,8 +17,8 @@
  */
 
 
-#ifndef  _MY_UART_H_
-#define  _MY_UART_H_
+#ifndef  _UART_H_
+#define  _UART_H_
 
 #include <stdlib.h>
 
@@ -88,4 +88,4 @@ int32_t uart_new_data( uint32_t ms );
 
 
 
-#endif   /* _MY_UART_H_ */
+#endif   /* _UART_H_ */
