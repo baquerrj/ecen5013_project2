@@ -43,9 +43,11 @@ typedef enum
 typedef enum
 {
     NRF_DR_1MBPS = 0,
-    NRF_DR_2MBPS = 1
-
+    NRF_DR_2MBPS = 1,
+    NRF_DR_250KBPS,
+    NRF_DR_MAX
 } nrf_data_rate_e;
+
 
 typedef enum
 {
@@ -59,8 +61,11 @@ typedef enum
 {
     NRF_CRC_DISABLED = 0,
     NRF_CRC_8,
-    NRF_CRC_16
+    NRF_CRC_16,
+    NRF_CRC_MAX
 } nrf_crc_e;
+
+
 
 typedef enum
 {
@@ -140,8 +145,8 @@ static inline void nrf_write_command( uint8_t command )
     nrf_chip_disable();
     nrf_chip_enable();
 
-    spi_write_byte( SPI_0, command );
-    spi_read_byte( SPI_0 );
+    spi_write_byte( NRF_SPI, command );
+    spi_read_byte( NRF_SPI );
 
     nrf_chip_disable();
     return;
@@ -161,8 +166,8 @@ static inline uint8_t nrf_read_register( uint8_t reg )
    nrf_chip_disable();
    nrf_chip_enable();
 
-   spi_write_byte( SPI_0, reg );
-   data = spi_read_byte( SPI_0 );
+   spi_write_byte( NRF_SPI, reg );
+   data = spi_read_byte( NRF_SPI );
 
    nrf_chip_disable();
    return data;
@@ -182,11 +187,8 @@ static inline uint8_t nrf_read_packet( uint8_t reg, uint8_t *buf, uint8_t len )
     nrf_chip_disable();
     nrf_chip_enable();
 
-    status = spi_write_byte( SPI_0, R_REGISTER | (REGISTER_MASK & reg) );
-    while( len-- )
-    {
-        *buf++ = spi_read_byte( SPI_0 );
-    }
+    status = spi_write_byte( NRF_SPI, R_REGISTER | (REGISTER_MASK & reg) );
+    spi_read_packet( NRF_SPI, buf, len );
     nrf_chip_disable();
     return status;
 }
@@ -203,8 +205,8 @@ static inline void nrf_write_register( uint8_t reg, uint8_t value )
     nrf_chip_disable();
     nrf_chip_enable();
 
-    spi_write_byte( SPI_0, W_REGISTER | (REGISTER_MASK & reg) );
-    spi_write_byte( SPI_0, value );
+    spi_write_byte( NRF_SPI, W_REGISTER | (REGISTER_MASK & reg) );
+    spi_write_byte( NRF_SPI, value );
 
     nrf_chip_disable();
     return;
@@ -218,11 +220,8 @@ static inline uint8_t nrf_write_packet( uint8_t reg, const uint8_t *buf, uint8_t
     nrf_chip_disable();
     nrf_chip_enable();
 
-    status = spi_write_byte( SPI_0, W_REGISTER | (REGISTER_MASK & reg) );
-    while( len-- )
-    {
-        spi_write_byte( SPI_0, *buf++ );
-    }
+    status = spi_write_byte( NRF_SPI, W_REGISTER | (REGISTER_MASK & reg) );
+    spi_write_packet( NRF_SPI, buf, len );
 
     nrf_chip_disable();
     return status;
@@ -236,6 +235,9 @@ static inline uint8_t nrf_write_packet( uint8_t reg, const uint8_t *buf, uint8_t
  */
 
 uint8_t nrf_module_init( void );
+
+
+uint8_t nrf_set_datarate( nrf_data_rate_e speed );
 
 /*!
  * @brief - Powers on NRF24 module and writing default configuration
@@ -323,7 +325,7 @@ void nrf_stop_listening( void );
  * @param[in]   len number of bytes to send
  * @return Current value of the status register
  */
-uint8_t nrf_write_payload( uint8_t *buf, uint8_t len );
+uint8_t nrf_write_payload( const void *buf, uint8_t len, const uint8_t writeType );
 
 
 /*!
@@ -350,7 +352,7 @@ void nrf_flush_rx( void );
 
 
 uint8_t nrf_get_dynamic_payload_size( void );
-void what_happened( uint8_t tx_ok, uint8_t tx_fail, uint8_t rx_read );
+void what_happened( uint8_t *tx_ok, uint8_t *tx_fail, uint8_t *rx_ready );
 
 
 /*!
@@ -422,7 +424,7 @@ void nrf_set_channel( uint8_t channel );
  * @return <+DESCRIPTION+>
  * <+DETAILED+>
  */
-uint8_t nrf_write( uint8_t *data, uint8_t len );
+uint8_t nrf_write( void *data, uint8_t len );
 
 
 /*!
@@ -441,7 +443,7 @@ uint8_t nrf_available( void );
  * @param[in]   len number of bytes to read
  * @returns 0 if payload was not delivered successfully
   */
-uint8_t nrf_read( uint8_t *buf, uint8_t len );
+uint8_t nrf_read( void *buf, uint8_t len );
 
 
 
@@ -480,5 +482,9 @@ void nrf_close_read_pipe( uint8_t rx_pipe_number );
 
 void nrf_init_test( void );
 
+void nrf_module_deinit( void );
 
+void print_status( uint8_t status );
+
+void print_details( void );
 #endif   /* _NRF_MODULE_H_ */

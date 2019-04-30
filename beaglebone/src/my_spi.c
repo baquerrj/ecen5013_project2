@@ -91,7 +91,7 @@ spi_e spi_disable( spi_e spi )
 }
 
 
-int8_t spi_write_packet( spi_e spi, uint8_t *p, size_t len )
+int8_t spi_write_packet( spi_e spi, const uint8_t *p, size_t len )
 {
     if( spi > SPI_1 )
     {

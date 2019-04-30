@@ -9,6 +9,9 @@
 
 #ifndef _NRF240L_H_
 #define _NRF240L_H_
+
+
+#define NRF_SPI     0
 #define RX_P_NO     1
 #define TX_FULL     0
 /* P model bit Mnemonics */
@@ -50,10 +53,10 @@
 #define NRF_CMD_FLUSH_RX     (0xE2)
 #define NRF_CMD_W_TX_PAYLOAD    (0xA0)
 #define NRF_CMD_R_RX_PAYLOAD    (0x61)
-#define NRF_CMD_ACTIVATE     (0x50)
-#define NRF_ACTIVATE_DATA    (0x73)
-#define NRF_CMD_RXPAYLD_W    (0x60)
-#define NRF_NOP              (0xFF)
+#define NRF_CMD_ACTIVATE        (0x50)
+#define NRF_ACTIVATE_DATA       (0x73)
+#define NRF_CMD_RXPAYLD_W       (0x60)
+#define NRF_NOP                 (0xFF)
 
 
 #define DEFAULT_TX_ADDRESS_1B   (0xE7)
@@ -123,6 +126,7 @@
 #define REUSE_TX_PL   0xE3
 #define NOP           0xFF
 
+#define W_TX_PAYLOAD_NO_ACK  0xB0
 //Masks
 #define NRF_RX_DR   6
 #define NRF_TX_DS   5
