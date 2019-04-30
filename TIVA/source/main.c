@@ -57,13 +57,14 @@ void vApplicationStackOverflowHook(xTaskHandle *pxTask, char *pcTaskName)
 int main( void )
 {
     /* Initialize system clock to 120MHz */
-    g_sysClock = MAP_SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
-                                             SYSCTL_OSC_MAIN |
-                                             SYSCTL_USE_PLL |
-                                             SYSCTL_CFG_VCO_480), g_sysClock);
+    g_sysClock = MAP_SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ  |
+                                         SYSCTL_OSC_MAIN    |
+                                         SYSCTL_USE_PLL     |
+                                         SYSCTL_CFG_VCO_480),
+                                        g_sysClock);
 
     /* Configure peripherals */
-    UART0_config( BAUD_115200, g_sysClock );    /* Configure UART0 with Baud Rate 115200 */
+    uart_config( UART_0, BAUD_115200 );    /* Configure UART0 with Baud Rate 115200 */
 
 
 
@@ -73,14 +74,13 @@ int main( void )
         while(1);
     }
 
-    if( 0 != node_comm_task_init() )
-    {
-        puts( ERROR " NODE COMM TASK INIT\n" );
-        while(1);
-    }
+//    if( 0 != node_comm_task_init() )
+//    {
+//        puts( ERROR " NODE COMM TASK INIT\n" );
+//        while(1);
+//    }
 
 
-#if 0
     I2C2_init();  /* Configure I2C Bus 2 for use with TMP102 sensor */
 
     if( 0 != apds9301_task_init() )
@@ -88,6 +88,7 @@ int main( void )
         puts( ERROR " APDS9301 TASK INIT\n" );
         while(1);
     }
+
 
     if( 0 != temp_task_init() )
     {
@@ -101,6 +102,7 @@ int main( void )
         while(1);
     }
 
+#if 0
     if( 0 != led_task_init() )
     {
         puts( ERROR " LED TASK INIT\n" );

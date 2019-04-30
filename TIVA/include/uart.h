@@ -10,7 +10,6 @@
 #ifndef UART_H_
 #define UART_H_
 
-#include "driverlib/uart.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
 
@@ -19,25 +18,54 @@
  */
 typedef enum
 {
+    BAUD_921600 = 921600,
     BAUD_115200 = 115200,
     BAUD_38400  = 38400,
     BAUD_57200  = 57200,
-    BAUD_9600   = 9600,
-
+    BAUD_9600   = 9600
 } uart_baud_e;
+
+/*!
+ * @brief UART enum
+ */
+typedef enum
+{
+    UART_0,
+    UART_1,
+    UART_2,
+    UART_3,
+    UART_4,
+    UART_5,
+    UART_6,
+    UART_MAX
+} uart_e;
 
 /*!
  * @brief UART access semaphore
  */
-xSemaphoreHandle g_pUARTMutex;
+xSemaphoreHandle g_pUARTMutex[ UART_MAX ];
 
 
 /*!
  * @brief Thread-safe printf macro
  * reference: https://www.freertos.org/FreeRTOS_Support_Forum_Archive/October_2013/freertos_Printf_-like_task_97cc7906j.html
  */
-#define printf( fmt, ... )      xSemaphoreTake( g_pUARTMutex, portMAX_DELAY ); UART0_printf(fmt, ##__VA_ARGS__); xSemaphoreGive( g_pUARTMutex )
-#define puts( str )             xSemaphoreTake( g_pUARTMutex, portMAX_DELAY ); UART0_putstr( str ); xSemaphoreGive( g_pUARTMutex )
+#define printf( fmt, ... )      xSemaphoreTake( g_pUARTMutex[ UART_0 ], portMAX_DELAY ); \
+                                uart_printf( UART_0, fmt, ##__VA_ARGS__); \
+                                xSemaphoreGive( g_pUARTMutex[ UART_0 ] )
+#define puts( str )             xSemaphoreTake( g_pUARTMutex[ UART_0 ], portMAX_DELAY ); \
+                                uart_putstr( UART_0, str ); \
+                                xSemaphoreGive( g_pUARTMutex[ UART_0 ] )
+
+/*!
+ * @brief Put data on UART
+ */
+void uart_putraw( uart_e, uint8_t* buf, size_t len );
+
+/*!
+ * @Brief Get raw data from UART
+ */
+uint8_t uart_getraw( uart_e uart, uint8_t *buf, size_t len );
 
 /*!
  * @brief Convert value to ASCII
@@ -56,7 +84,7 @@ char* convert( unsigned int num, int base );
  * @param clock_frequency - system clock
  * @returns void
  */
-void UART0_config( uart_baud_e baud_rate, uint32_t clock_frequency );
+void uart_config( uart_e uart, uart_baud_e baud_rate );
 
 /*!
  * @brief Print string to UART0
@@ -64,7 +92,7 @@ void UART0_config( uart_baud_e baud_rate, uint32_t clock_frequency );
  * @param str - string to print
  * @returns void
  */
-void UART0_putstr(const char *str);
+void uart_putstr( uart_e uart, const char *str);
 
 /*!
  * @brief Formats string and outputs to UART
@@ -72,7 +100,7 @@ void UART0_putstr(const char *str);
  * @param fmt - format string
  * @returns void
  */
-void UART0_printf( const char *fmt, ... );
+void uart_printf( uart_e uart, const char *fmt, ... );
 
 /*!
  * @brief Print single char to UART0
@@ -80,6 +108,6 @@ void UART0_printf( const char *fmt, ... );
  * @param ch - character to print
  * @returns void
  */
-void UART0_putchar( char ch );
+void uart_putchar( uart_e uart, char ch );
 
 #endif /* UART_H_ */

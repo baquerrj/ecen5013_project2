@@ -50,7 +50,7 @@ typedef struct
     } data;
 } log_msg_t;
 
-extern xSemaphoreHandle g_pUARTMutex;
+extern xSemaphoreHandle g_pUARTMutex[ UART_MAX ];
 
 #define LOG_INFO( p_log ) \
     do{ \

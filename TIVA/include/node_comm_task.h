@@ -10,8 +10,6 @@
 #ifndef _NODE_COMM_TASK_H_
 #define _NODE_COMM_TASK_H_
 
-#include "task.h"
-
 uint8_t node_comm_task_init( void );
 
 

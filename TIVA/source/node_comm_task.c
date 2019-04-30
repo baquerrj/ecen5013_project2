@@ -6,6 +6,7 @@
  *  Author:     rober
  */
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -14,6 +15,7 @@
 #include "FreeRTOS.h"
 
 #include "priorities.h"
+#include "common.h"
 #include "uart.h"
 #include "nrf_module.h"
 #include "logger_task.h"
@@ -87,11 +89,13 @@ uint8_t node_comm_task_init( void )
 {
     configASSERT( loggerTaskInitDone == 1 );
 
-    if( 0 != comm_init_nrf() )
-    {
-        puts( "ERROR - NODE COMM TASK\n" );
-        return 1;
-    }
+    comm_init_uart();
+
+//    if( 0 != comm_init_nrf() )
+//    {
+//        puts( "ERROR - NODE COMM TASK\n" );
+//        return 1;
+//    }
 
     /* Create the task */
     if( xTaskCreate(comm_task, (const portCHAR *)"COMM_TASK", MY_STACK_SIZE, NULL,

@@ -15,6 +15,8 @@
 #include "my_i2c.h"
 #include "uart.h"
 
+extern uint32_t g_sysClock;
+
 void I2C0_init( void )
 {
     /* Enable I2C Bus 0 */
