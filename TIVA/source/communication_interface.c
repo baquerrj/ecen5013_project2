@@ -40,15 +40,16 @@ int8_t comm_init_nrf( void )
         return 0;
     }
 
-    if( !nrf_module_init() )
+    //nrf_init_test();
+    if( 0 != nrf_module_init() )
     {
         return -1;
     }
 
     nrf_set_channel(1);
     nrf_set_palevel( NRF_PA_MIN );
-    nrf_open_writing_pipe( pipes[ 1 ] );
-    nrf_open_reading_pipe( 1, pipes[ 0 ] );
+    nrf_open_writing_pipe( pipes[ 0 ] );
+    nrf_open_reading_pipe( 1, pipes[ 1 ] );
 
     print_details();
     count++;

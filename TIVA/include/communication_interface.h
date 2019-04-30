@@ -1,6 +1,6 @@
 /*!
  * @file  communication_interface.h
- * @brief 
+ * @brief
  *
  *  <+DETAILED+>
  *
@@ -24,7 +24,6 @@
 #include <stdint.h>
 
 #include "common.h"
-#include "my_uart.h"
 #include "nrf_module.h"
 
 typedef enum
@@ -60,7 +59,6 @@ static inline size_t comm_recv_uart( node_message_t *p_comm_object )
     return uart3_getraw( (uint8_t*)p_comm_object, sizeof( node_message_t ) );
 }
 
-#else
 //For BBG
 
 static inline int comm_init_uart()

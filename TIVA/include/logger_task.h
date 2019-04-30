@@ -10,8 +10,6 @@
 #ifndef LOGGER_TASK_H_
 #define LOGGER_TASK_H_
 
-//#include "FreeRTOS.h"
-//#include "semphr.h"
 #include "uart.h"
 
 #define INFO    "[INFO]"

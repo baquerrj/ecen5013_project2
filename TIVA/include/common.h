@@ -21,137 +21,15 @@
 #define COMMON_H
 
 
-#include <stdio.h>
 #include <stdint.h>
-#include <signal.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <mqueue.h>
-#include <time.h>
-#include <string.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
-
-#define MSG_SIZE 100
-#define MAX_MESSAGES 100
-
-#define MICROS_PER_SEC  1000000
-
-#define FREQ_1HZ        (MICROS_PER_SEC)
-#define FREQ_2HZ        (MICROS_PER_SEC/2)
-#define FREQ_4HZ        (MICROS_PER_SEC/4)
-#define FREQ_HALF_HZ    (MICROS_PER_SEC*2)
-#define FREQ_QURT_HZ    (MICROS_PER_SEC*4)
-
-#define ERROR   "[ERROR]\n"
-#define INFO    "[INFO]\n"
-#define SIGNAL  "[SIGNAL]\n"
-#define WARNING "[WARNING]\n"
-
-#define FPRINTF(stream, fmt, ...)   \
-   do{ \
-      fprintf(stream, "[%s]\t[PID:%d]\t[TID:%ld]", get_timestamp(), getpid(), syscall(SYS_gettid)); \
-      fprintf(stream, fmt, ##__VA_ARGS__); \
-      fflush( stream ); \
-   }while(0)
-
-#define LOG_ERROR(fmt, ...)  \
-   do{ \
-      FPRINTF( stderr, ERROR fmt, ##__VA_ARGS__ ); \
-      fflush( stderr ); \
-   }while(0)
-
-#define LOG_INFO(fmt, ...)  \
-   do{ \
-      FPRINTF( stderr, INFO fmt, ##__VA_ARGS__ ); \
-      fflush( stdout ); \
-   }while(0)
-
-#define LOG_WARNING(fmt, ...)  \
-   do{ \
-      FPRINTF( stderr, WARNING fmt, ##__VA_ARGS__ ); \
-      fflush( stderr ); \
-   }while(0)
-
-
-/*******************************************************************************
- *  Struct to hold thread identifiers for tasks
- ******************************************************************************/
-
-typedef enum {
-   TASK_LOGGER = 0,
-   TASK_NODE_COMM,
-   TASK_WATCHDOG,
-   TASK_MAX
-} task_e;
-
-#define NUM_THREADS         (TASK_MAX)
-
-pthread_t task_id[ TASK_MAX ];
-
-/*! @brief Logging levels */
-typedef enum
-{
-   LOG_ERROR,
-   LOG_WARNING,
-   LOG_INFO,
-   LOG_ALL
-} log_level_e;
-
-
-
-/*******************************************************************************
- *  Defines types of possible messages
- ******************************************************************************/
-typedef enum {
-   MSG_BEGIN = 0,
-   MSG_CLOSE,
-   MSG_KILL,
-   MSG_STATUS,
-   MSG_ALIVE,
-   MSG_MAX
-} message_e;
-
-
-/*! @brief Log Message Structure */
-typedef struct
-{
-   log_level_e level;
-   char        timestamp[25];
-   message_e   id;
-   task_e      src;
-   char        msg[MSG_SIZE];
-} message_t;
-
-
-/*******************************************************************************
- *
- ******************************************************************************/
-typedef struct {
-   char *name;
-   FILE *fid;
-} file_t;
-
-/*******************************************************************************
- *  Exit Enum
- ******************************************************************************/
-typedef enum {
-   EXIT_BEGIN = 0,
-   EXIT_CLEAN = 0,
-   EXIT_INIT,
-   EXIT_ERROR,
-   EXIT_MAX
-} exit_e;
-
-extern const char* const task_names[ TASK_MAX ];
-
+#include <stdlib.h>
 
 /*******************************************************************************
  *  Controller + Remote Node Interface
  ******************************************************************************/
 /*! @brief BBG and TIVA Board IDs */
-#define BBG_BOARD_ID        (0x00)
-#define TIVA_BOARD_ID       (0x01)
+#define BBG_BOARD_ID            (0x00)
+#define TIVA_BOARD_ID           (0x01)
 
 #define TIVA_SENSOR_MODULE      (1)
 #define TIVA_CAMERA_MODULE      (2)
@@ -181,7 +59,24 @@ typedef enum
     NODE_MSG_ID_MAX
 } node_message_e;
 
-extern const char* const node_message_names[ NODE_MSG_ID_MAX ];
+const char* const node_message_id_names[ NODE_MSG_ID_MAX ] =
+{
+    (const char*)"ALIVE",
+    (const char*)"INFO",
+    (const char*)"ERROR",
+    (const char*)"WARNING",
+    (const char*)"SENSOR_STATUS",
+    (const char*)"PICTURE",
+    (const char*)"OBJECT_DETECTED",
+    (const char*)"BOARD_TYPE",
+    (const char*)"UID",
+    (const char*)"GET_SENSOR_STATUS",
+    (const char*)"GET_SENSOR_INFO",
+    (const char*)"GET_CLIENT_BOARD_TYPE",
+    (const char*)"GET_CLIENT_UID",
+};
+
+
 
 typedef struct
 {
@@ -233,17 +128,6 @@ static inline uint8_t verifyCheckSum( const node_message_t *node_msg )
 }
 
 /*!
- * @brief   Get string representaion of task requesting logging
- *
- * @param[in]   task_id ID according to task_e enum
- * @return string represenation from task_name array
- */
-static inline const char* get_task_name( task_e task_id )
-{
-   return task_names[ task_id ];
-}
-
-/*!
  * @brief   Get string represenation of node message ID
  *
  * @param[in]   msg_id ID of message according to node_message_e enum
@@ -251,45 +135,7 @@ static inline const char* get_task_name( task_e task_id )
  */
 static inline const char* get_message_id_name( node_message_e msg_id )
 {
-    return node_message_names[ msg_id ];
+    return node_message_id_names[ msg_id ];
 }
-
-/*!
- * @brief   Get timestamp and format it as a string
- *
- * @return formatted timestamp
- * <+DETAILED+>
- */
-char* get_timestamp( void );
-
-
-/*!
- * @brief   Common exit point for all threads
- *
- * @param   exit_status - reason for exit (signal number)
- * @return  void
- */
-void thread_exit( int exit_status );
-
-
-/*!
- * @brief   Initializes a timer identified by timer_t id
- *
- * @param   *id   - identifier for new timer
- * @param   *handler - pointer to function to register as the handler for the timer ticks
- * @return  EXIT_CLEAN if successful, otherwise EXIT_INIT
- */
-int timer_setup( timer_t *id, void (*timer_handler)(union sigval) );
-
-
-/*!
- * @brief   Starts the timer with interval usecs
- *
- * @param   *id   - identifier for new timer
- * @param   usecs - timer interval
- * @return  EXIT_CLEAN if successful, otherwise EXIT_INIT
- */
-int timer_start( timer_t *id, unsigned long usecs );
-
 
 #endif /* COMMON_H */
