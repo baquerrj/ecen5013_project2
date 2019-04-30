@@ -20,19 +20,18 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include <signal.h>
+
 #include <stdio.h>
+#include <stdint.h>
+#include <signal.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <mqueue.h>
 #include <time.h>
 #include <string.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 
-#define NUM_THREADS         (4)
-//#define _PROXIMITY_ 1
 #define MSG_SIZE 100
 #define MAX_MESSAGES 100
 
@@ -56,12 +55,6 @@
       fflush( stream ); \
    }while(0)
 
-#if 0
-#define SPRINTF(msg, fmt, ...)   \
-   do{ \
-      snprintf("[PID:%d][TID:%ld]", getpid(), syscall(SYS_gettid)); snprintf(msg, sizeof(msg), fmt, ##__VA_ARGS__);}while(0);
-#endif
-
 #define LOG_ERROR(fmt, ...)  \
    do{ \
       FPRINTF( stderr, ERROR fmt, ##__VA_ARGS__ ); \
@@ -80,21 +73,21 @@
       fflush( stderr ); \
    }while(0)
 
+
 /*******************************************************************************
  *  Struct to hold thread identifiers for tasks
  ******************************************************************************/
-pthread_t task_id[ NUM_THREADS ];
 
 typedef enum {
    TASK_LOGGER = 0,
-//   TASK_TMP102,
-   TASK_APDS9301,
-//   TASK_APDS9960,
-   TASK_SOCKET,
+   TASK_NODE_COMM,
    TASK_WATCHDOG,
    TASK_MAX
 } task_e;
 
+#define NUM_THREADS         (TASK_MAX)
+
+pthread_t task_id[ TASK_MAX ];
 
 /*! @brief Logging levels */
 typedef enum
@@ -106,59 +99,18 @@ typedef enum
 } log_level_e;
 
 
-/*******************************************************************************
- *  Defines types of possible requests from remote clients
- ******************************************************************************/
-typedef enum {
-   REQUEST_BEGIN = 0,
-   REQUEST_LUX,
-   REQUEST_DARK,
-   REQUEST_TEMP,
-   REQUEST_TEMP_C = REQUEST_TEMP,
-   REQUEST_TEMP_K,
-   REQUEST_TEMP_F,
-   REQUEST_CLOSE,
-   REQUEST_KILL,
-   REQUEST_STATUS,
-   REQUEST_MAX
-} request_e;
-
 
 /*******************************************************************************
  *  Defines types of possible messages
  ******************************************************************************/
 typedef enum {
    MSG_BEGIN = 0,
-   MSG_LUX,
-   MSG_DARK,
-   MSG_TEMP,
-   MSG_TEMP_C = REQUEST_TEMP,
-   MSG_TEMP_K,
-   MSG_TEMP_F,
    MSG_CLOSE,
    MSG_KILL,
    MSG_STATUS,
    MSG_ALIVE,
    MSG_MAX
 } message_e;
-
-/*******************************************************************************
- *  Defines struct for communicating sensor information
- ******************************************************************************/
-typedef struct {
-   float data;    /** Can be temperature in Celsius, Fahrenheit, or Kelvin OR
-                     lux output from light sensor */
-   int   night;   /** 1 when it is dark and 0 otherwise */
-} sensor_data_t;
-
-/*******************************************************************************
- *  Defines struct for response for remote socket task
- ******************************************************************************/
-typedef struct {
-   request_e id;
-   char info[MSG_SIZE];
-   sensor_data_t data;
-} remote_t;
 
 
 /*! @brief Log Message Structure */
@@ -191,101 +143,151 @@ typedef enum {
    EXIT_MAX
 } exit_e;
 
+extern const char* const task_names[ TASK_MAX ];
 
 
-extern const char* const task_name[NUM_THREADS + 1];
+/*******************************************************************************
+ *  Controller + Remote Node Interface
+ ******************************************************************************/
+/*! @brief BBG and TIVA Board IDs */
+#define BBG_BOARD_ID        (0x00)
+#define TIVA_BOARD_ID       (0x01)
+
+#define TIVA_SENSOR_MODULE      (1)
+#define TIVA_CAMERA_MODULE      (2)
+#define TIVA_COMM_MODULE        (3)
+#define TIVA_LED_MODULE         (4)
+
+#define BBG_LOGGER_MODULE       (1)
+#define BBG_COMM_MODULE         (2)
+
+/*! @brief Message ID for messages between nodes */
+typedef enum
+{
+    NODE_MSG_ID_ALIVE = 0,
+    NODE_MSG_ID_INFO,
+    NODE_MSG_ID_ERROR,
+    NODE_MSG_ID_WARNING,
+    NODE_MSG_ID_SENSOR_STATUS,
+    NODE_MSG_ID_PICTURE,
+    NODE_MSG_ID_OBJECT_DETECTED,
+    NODE_MSG_ID_BOARD_TYPE,
+    NODE_MSG_ID_UID,
+
+    NODE_MSG_ID_GET_SENSOR_STATUS,
+    NODE_MSG_ID_GET_SENSOR_INFO,
+    NODE_MSG_ID_GET_CLIENT_BOARD_TYPE,
+    NODE_MSG_ID_GET_CLIENT_UID,
+    NODE_MSG_ID_MAX
+} node_message_e;
+
+extern const char* const node_message_names[ NODE_MSG_ID_MAX ];
+
+typedef struct
+{
+    size_t length;
+    void* frame;
+} camera_packet_t;
+
+/*! @brief Struct defining inter-node communication */
+typedef struct
+{
+    uint8_t src_id;
+    uint8_t src_brd_id;
+    uint8_t dst_id;
+    uint8_t dst_brd_id;
+    node_message_e msg_id;
+    union
+    {
+        float float_data;
+        float sensor_value;
+        camera_packet_t *camera_packet;
+        size_t filler;
+    } data;
+    char message[18];
+    uint16_t checksum;
+} node_message_t;
+
+static uint16_t getCheckSum( const node_message_t *node_msg )
+{
+    uint16_t checkSum = 0;
+    uint8_t sizeOfPayload = sizeof( node_message_t ) - sizeof( node_msg->checksum );
+    uint8_t *p_payload = (uint8_t*)node_msg;
+    int i;
+    for(i = 0; i < sizeOfPayload; i++)
+    {
+        checkSum += *( p_payload + i );
+    }
+    return checkSum;
+}
 
 /*!
- * @brief 
+ * @brief   Verify checksum
  *
- * @param  <+NAME+> <+DESCRIPTION+>
- * @return <+DESCRIPTION+>
- * <+DETAILED+>
+ * @param[in]   node_msg message from remote node to verify
+ * @returns 1 if a match
+ */
+static inline uint8_t verifyCheckSum( const node_message_t *node_msg )
+{
+    return getCheckSum( node_msg ) == node_msg->checksum;
+}
+
+/*!
+ * @brief   Get string representaion of task requesting logging
+ *
+ * @param[in]   task_id ID according to task_e enum
+ * @return string represenation from task_name array
  */
 static inline const char* get_task_name( task_e task_id )
 {
-   return task_name[ task_id ];
+   return task_names[ task_id ];
 }
 
+/*!
+ * @brief   Get string represenation of node message ID
+ *
+ * @param[in]   msg_id ID of message according to node_message_e enum
+ * @return string represenation of message
+ */
+static inline const char* get_message_id_name( node_message_e msg_id )
+{
+    return node_message_names[ msg_id ];
+}
 
 /*!
- * @brief 
+ * @brief   Get timestamp and format it as a string
  *
- * @param  <+NAME+> <+DESCRIPTION+>
- * @return <+DESCRIPTION+>
+ * @return formatted timestamp
  * <+DETAILED+>
  */
 char* get_timestamp( void );
 
 
-/**
- * =================================================================================
- * Function:       print_header
- * @brief   Write a string formatted with the TID of the thread calling this function
- *          and a timestamp to the log buffer
- *
- * @param   *buffer  - pointer to where we should copy formatted string to
- *                     if NULL, we print to stderr
- * @return  void
- * =================================================================================
- */
-void print_header( char *buffer );
-
-/**
- * =================================================================================
- * Function:       thread_exit
+/*!
  * @brief   Common exit point for all threads
  *
  * @param   exit_status - reason for exit (signal number)
  * @return  void
- * =================================================================================
  */
 void thread_exit( int exit_status );
 
-/**
- * =================================================================================
- * Function:       get_shared_memory
- * @brief   Sets up shared memory location for logging
- *
- * @param   void
- * @return  *shm_p - pointer to shared memory object
- * =================================================================================
- */
-//void *get_shared_memory( void );
 
-/**
- * =================================================================================
- * Function:       sems_init
- * @brie    Initialize semaphores for shared memory 
- *
- * @param   *shm  - pointer to shared memory object
- * @return  EXIT_CLEAN if successful, otherwise EXIT_INIT
- * =================================================================================
- */
-//int sems_init( shared_data_t *shm );
-
-/**
- * =================================================================================
- * Function:       timer_setup
+/*!
  * @brief   Initializes a timer identified by timer_t id
  *
  * @param   *id   - identifier for new timer
- * @param   *handler - pointer to function to register as the handler for the timer ticks 
- * @return  EXIT_CLEAN if successful, otherwise EXIT_INIT 
- * =================================================================================
+ * @param   *handler - pointer to function to register as the handler for the timer ticks
+ * @return  EXIT_CLEAN if successful, otherwise EXIT_INIT
  */
 int timer_setup( timer_t *id, void (*timer_handler)(union sigval) );
 
 
-/**
- * =================================================================================
- * Function:       timer_start
+/*!
  * @brief   Starts the timer with interval usecs
  *
  * @param   *id   - identifier for new timer
  * @param   usecs - timer interval
- * @return  EXIT_CLEAN if successful, otherwise EXIT_INIT 
- * =================================================================================
+ * @return  EXIT_CLEAN if successful, otherwise EXIT_INIT
  */
 int timer_start( timer_t *id, unsigned long usecs );
 

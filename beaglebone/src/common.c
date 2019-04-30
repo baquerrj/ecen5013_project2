@@ -30,12 +30,27 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-const char* const task_name[NUM_THREADS + 1] = {
+const char* const node_message_id_names[ NODE_MSG_ID_MAX ] =
+{
+    (const char*)"ALIVE",
+    (const char*)"INFO",
+    (const char*)"ERROR",
+    (const char*)"WARNING",
+    (const char*)"SENSOR_STATUS",
+    (const char*)"PICTURE",
+    (const char*)"OBJECT_DETECTED",
+    (const char*)"BOARD_TYPE",
+    (const char*)"UID",
+    (const char*)"GET_SENSOR_STATUS",
+    (const char*)"GET_SENSOR_INFO",
+    (const char*)"GET_CLIENT_BOARD_TYPE",
+    (const char*)"GET_CLIENT_UID",
+};
+
+
+const char* const task_names[ TASK_MAX ] = {
    (const char*)"LOGGER TASK",
-   (const char*)"TMP102 TASK",
-   (const char*)"APDS9301 TASK",
-   (const char*)"APDS9960 TASK",
-   (const char*)"SOCKET TASK",
+   (const char*)"COMM TASK",
    (const char*)"WATCHDOG",
 };
 

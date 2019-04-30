@@ -95,7 +95,7 @@ static inline int8_t spi_write_byte( spi_e spi, uint8_t byte )
  * Send multiple bytes given a pointer to an array and the number of bytes to be sent
  * @returns number of bytes written
  */
-int8_t spi_write_packet( spi_e spi, uint8_t* p, size_t len );
+int8_t spi_write_packet( spi_e spi, const uint8_t* p, size_t len );
 
 
 /*!
