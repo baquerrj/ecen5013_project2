@@ -36,26 +36,19 @@
 #include "led.h"
 
 #include "nrf_module.h"
-#include "comm_sender_task.h"
-#include "node_interface.h"
+#include "node_comm_task.h"
 #include "communication_interface.h"
 
 void* (*thread_entry_fn[ NUM_THREADS ])(void *) =
 {
     logger_fn,
-    comm_sender_task_fn,
+    node_comm_task_fn,
     watchdog_fn,
 };
 
-/**
- * =================================================================================
- * Function:       signal_handler
+/*!
  * @brief
- *
- * @param  <+NAME+> <+DESCRIPTION+>
- * @return <+DESCRIPTION+>
- * <+DETAILED+>
- * =================================================================================
+
  */
 static void signal_handler( int signo )
 {
@@ -67,15 +60,9 @@ static void signal_handler( int signo )
    }
 }
 
-/**
- * =================================================================================
- * Function:       turn_off_leds
+/*!
  * @brief
  *
- * @param  <+NAME+> <+DESCRIPTION+>
- * @return <+DESCRIPTION+>
- * <+DETAILED+>
- * =================================================================================
  */
 void turn_off_leds( void )
 {
@@ -86,15 +73,9 @@ void turn_off_leds( void )
    return;
 }
 
-/**
- * =================================================================================
- * Function:       main
+/*!
  * @brief
  *
- * @param  <+NAME+> <+DESCRIPTION+>
- * @return <+DESCRIPTION+>
- * <+DETAILED+>
- * =================================================================================
  */
 int main( int argc, char *argv[] )
 {
@@ -129,12 +110,12 @@ int main( int argc, char *argv[] )
       if( 0 != pthread_create( &task_id[i], NULL, thread_entry_fn[i], (void*)log->fid ) )
       {
          int errnum = errno;
-         LOG_ERROR( "Could not create thread %d (%s)\n", i, strerror( errnum ) ); 
+         LOG_ERROR( "Could not create thread %d (%s)\n", i, strerror( errnum ) );
          return 1;
       }
    }
    LOG_INFO( "MAIN: CHILD THREADS INIT\n" );
- 
+
    pthread_join( task_id[TASK_WATCHDOG], NULL );
 
 

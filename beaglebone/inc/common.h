@@ -20,11 +20,12 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include <signal.h>
+
 #include <stdio.h>
+#include <stdint.h>
+#include <signal.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <mqueue.h>
 #include <time.h>
 #include <string.h>
@@ -79,7 +80,7 @@
 
 typedef enum {
    TASK_LOGGER = 0,
-   TASK_COMM_SENDER,
+   TASK_NODE_COMM,
    TASK_WATCHDOG,
    TASK_MAX
 } task_e;
@@ -142,7 +143,7 @@ typedef enum {
    EXIT_MAX
 } exit_e;
 
-extern const char* const task_name[ TASK_MAX ];
+extern const char* const task_names[ TASK_MAX ];
 
 
 /*******************************************************************************
@@ -152,11 +153,10 @@ extern const char* const task_name[ TASK_MAX ];
 #define BBG_BOARD_ID        (0x00)
 #define TIVA_BOARD_ID       (0x01)
 
-#define TIVA_HEART_BEAT_MODULE  (1)
-#define TIVA_SENSOR_MODULE      (2)
-#define TIVA_CAMERA_MODULE      (3)
-#define TIVA_COMM_MODULE        (4)
-#define TIVA_LED_MODULE         (5)
+#define TIVA_SENSOR_MODULE      (1)
+#define TIVA_CAMERA_MODULE      (2)
+#define TIVA_COMM_MODULE        (3)
+#define TIVA_LED_MODULE         (4)
 
 #define BBG_LOGGER_MODULE       (1)
 #define BBG_COMM_MODULE         (2)
@@ -208,8 +208,29 @@ typedef struct
     uint16_t checksum;
 } node_message_t;
 
+static uint16_t getCheckSum( const node_message_t *node_msg )
+{
+    uint16_t checkSum = 0;
+    uint8_t sizeOfPayload = sizeof( node_message_t ) - sizeof( node_msg->checksum );
+    uint8_t *p_payload = (uint8_t*)node_msg;
+    int i;
+    for(i = 0; i < sizeOfPayload; i++)
+    {
+        checkSum += *( p_payload + i );
+    }
+    return checkSum;
+}
 
-
+/*!
+ * @brief   Verify checksum
+ *
+ * @param[in]   node_msg message from remote node to verify
+ * @returns 1 if a match
+ */
+static inline uint8_t verifyCheckSum( const node_message_t *node_msg )
+{
+    return getCheckSum( node_msg ) == node_msg->checksum;
+}
 
 /*!
  * @brief   Get string representaion of task requesting logging
@@ -219,9 +240,19 @@ typedef struct
  */
 static inline const char* get_task_name( task_e task_id )
 {
-   return task_name[ task_id ];
+   return task_names[ task_id ];
 }
 
+/*!
+ * @brief   Get string represenation of node message ID
+ *
+ * @param[in]   msg_id ID of message according to node_message_e enum
+ * @return string represenation of message
+ */
+static inline const char* get_message_id_name( node_message_e msg_id )
+{
+    return node_message_names[ msg_id ];
+}
 
 /*!
  * @brief   Get timestamp and format it as a string
