@@ -20,6 +20,7 @@
 #include "timers.h"
 
 #include "uart.h"
+#include "led_task.h"
 #include "logger_task.h"
 #include "tmp102_sensor.h"
 #include "tmp102_task.h"
@@ -32,7 +33,14 @@ extern xQueueHandle g_pLoggerQueue;
 extern xTaskHandle g_pAlertTaskHandle;
 
 TimerHandle_t tmp102_timer_handle;
+static log_msg_t log_msg_out;
 
+static float temp = -5.5;
+
+void get_temperature( float *data )
+{
+    *data = temp;
+}
 
 static void init_1hz( void *params )
 {
@@ -55,31 +63,31 @@ static void init_1hz( void *params )
 
 void tmp102_task_callback( TimerHandle_t timer )
 {
-    static log_msg_t msg_out;
-    msg_out.src = pcTimerGetTimerName( tmp102_timer_handle );
-    float temp = -5.5;
+    log_msg_out.src = pcTimerGetTimerName( tmp102_timer_handle );
     //Timer handle for 1Hz Temperature Sensor task
     if( tmp102_timer_handle == timer )
     {
-        msg_out.tickcount = xTaskGetTickCount();
-        msg_out.level = LOG_INFO;
+        log_msg_out.tickcount = xTaskGetTickCount();
+        log_msg_out.level = LOG_INFO;
 
         tmp102_get_temp( &temp );
-        msg_out.data.float_data = temp;
+        log_msg_out.data.float_data = temp;
 
         int i = (int32_t)temp;
         if( HIGH_TEMPERATURE < i )
         {
             /* Notify Alert Task of out-of-range temperature */
             xTaskNotify( g_pAlertTaskHandle, MSG_TEMP_HIGH, eSetBits );
+            SENSOR_MSG( &log_msg_out, "HIGH TEMP!" );
         }
         else if( LOW_TEMPERATURE > i )
         {
             /* Notify Alert Task of out-of-range temperature */
             xTaskNotify( g_pAlertTaskHandle, MSG_TEMP_LOW, eSetBits );
+            SENSOR_MSG( &log_msg_out, "LOW TEMP!" );
         }
 
-        LOG_TASK_MSG( &msg_out, "TEMP: %f C", msg_out.data.float_data );
+        LOG_TASK_MSG( &log_msg_out, "TEMP: %f C", log_msg_out.data.float_data );
     }
 }
 

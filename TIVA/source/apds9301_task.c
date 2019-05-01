@@ -23,6 +23,7 @@
 #include "timers.h"
 
 #include "uart.h"
+#include "led_task.h"
 #include "logger_task.h"
 #include "apds9301_sensor.h"
 #include "apds9301_task.h"
@@ -33,6 +34,12 @@ extern xQueueHandle g_pLoggerQueue;
 
 TimerHandle_t apds9301_timer_handle;
 
+static float lux = -5.5;
+
+void get_lux( float *data )
+{
+    *data = lux;
+}
 
 static void init_1hz( void *params )
 {
@@ -55,7 +62,6 @@ void apds9301_task_callback( TimerHandle_t timer )
 {
     static log_msg_t msg_out;
     msg_out.src = pcTimerGetTimerName( apds9301_timer_handle );
-    float lux = -5.5;
     //Timer handle for 1Hz APDS9301 Sensor task
     if( apds9301_timer_handle == timer )
     {
@@ -64,7 +70,10 @@ void apds9301_task_callback( TimerHandle_t timer )
 
         apds9301_get_lux( &lux );
         msg_out.data.float_data = lux;
-
+        if( lux < 2.0 )
+        {
+            SENSOR_MSG( &msg_out, "DARK!" );
+        }
         LOG_TASK_MSG( &msg_out, "LUX: %f", msg_out.data.float_data );
 
     }

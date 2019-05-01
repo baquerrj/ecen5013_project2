@@ -19,6 +19,7 @@
         xSemaphoreGive( g_LedMutex ); \
     }while(0)
 
+void get_temperature( float *data );
 
 
 /*!

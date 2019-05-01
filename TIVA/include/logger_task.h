@@ -24,7 +24,7 @@ typedef enum
     MSG_TEMP_LOW,
     MSG_TEMP_HIGH,
     MSG_GET_LUX,
-    MSG_PROXIMITY,
+    MSG_DARK,
     MSG_MAX
 } log_msg_e;
 

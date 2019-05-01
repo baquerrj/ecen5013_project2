@@ -41,10 +41,19 @@
 
 extern xQueueHandle g_pLoggerQueue;
 extern TimerHandle_t tmp102_timer_handle;
+extern TimerHandle_t apds9301_timer_handle;
 
 TimerHandle_t led_timer_handle;
 
 xTaskHandle g_pLedTaskHandle;
+
+void led_enqueue( QueueHandle_t queue, const log_msg_t *msg_out, size_t size )
+{
+    if( pdPASS != xQueueSend( queue, (void*)msg_out, portMAX_DELAY ) )
+    {
+        puts( "[LED] --- MESSAGE QUEUE\n" );
+    }
+}
 
 static void init_10hz( void *params )
 {
@@ -110,6 +119,11 @@ void led_task( void *params )
                     {
                         char buf[8];
                         snprintf( buf, 8 * sizeof( char ), "%f", msg_in.data.float_data );
+                        maxSegmentString( buf );
+                    }
+                    else if( msg_in.src == pcTimerGetTimerName( apds9301_timer_handle ) )
+                    {
+                        char buf[8] = "DARK!";
                         maxSegmentString( buf );
                     }
                 }

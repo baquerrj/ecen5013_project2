@@ -43,7 +43,7 @@ volatile uint8_t comm_type;
 #ifdef TIVA_BOARD
 static inline void comm_init_uart( void )
 {
-    uart_config( TIVA_UART, BAUD_921600 );
+    uart_config( TIVA_UART, BAUD_115200 );
 }
 
 static inline void comm_deinit_uart( int fd ) {}

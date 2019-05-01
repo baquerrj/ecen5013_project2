@@ -12,6 +12,8 @@
 
 #include "timers.h"
 
+void get_lux( float *data );
+
 /*!
  * @brief Timer Callback for APDS9301 Sensor Task
  *

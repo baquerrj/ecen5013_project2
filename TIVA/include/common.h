@@ -26,16 +26,34 @@
  *  Controller + Remote Node Interface
  ******************************************************************************/
 /*! @brief BBG and TIVA Board IDs */
-#define BBG_BOARD_ID            (0x00)
-#define TIVA_BOARD_ID           (0x01)
 
-#define TIVA_SENSOR_MODULE      (1)
-#define TIVA_CAMERA_MODULE      (2)
-#define TIVA_COMM_MODULE        (3)
-#define TIVA_LED_MODULE         (4)
 
-#define BBG_LOGGER_MODULE       (1)
-#define BBG_COMM_MODULE         (2)
+typedef enum
+{
+    BOARD_ID_BBG    = 0,
+    BOARD_ID_TIVA   = 1,
+    BOARD_ID_MAX
+} board_e;
+
+
+typedef enum
+{
+    TIVA_MODULE_TMP102   = 0,
+    TIVA_MODULE_APDS9301,
+    TIVA_MODULE_CAMERA,
+    TIVA_MODULE_COMM,
+    TIVA_MODULE_LED,
+    TIVA_MODULE_MAX
+} tiva_module_e;
+
+
+typedef enum
+{
+    BBG_MODULE_LOGGER = 0,
+    BBG_MODULE_COMM,
+    BBG_MODULE_MAX
+} bbg_module_e;
+
 
 /*! @brief Message ID for messages between nodes */
 typedef enum
@@ -50,12 +68,25 @@ typedef enum
     NODE_MSG_ID_BOARD_TYPE,
     NODE_MSG_ID_UID,
 
-    NODE_MSG_ID_GET_SENSOR_STATUS,
+    NODE_MSG_ID_GET_TEMPERATURE,
+    NODE_MSG_ID_GET_LUX,
     NODE_MSG_ID_GET_SENSOR_INFO,
     NODE_MSG_ID_GET_CLIENT_BOARD_TYPE,
     NODE_MSG_ID_GET_CLIENT_UID,
     NODE_MSG_ID_MAX
 } node_message_e;
+
+
+#define BBG_BOARD_ID        BOARD_ID_BBG
+#define TIVA_BOARD_ID       BOARD_ID_TIVA
+
+#define TIVA_TMP102_MODULE      TIVA_MODULE_TMP102
+#define TIVA_APDS9301_MODULE    TIVA_MODULE_APDS9301
+#define TIVA_CAMERA_MODULE      TIVA_MODULE_CAMERA
+#define TIVA_COMM_MODULE        TIVA_MODULE_COMM
+#define TIVA_LED_MODULE         TIVA_MODULE_LED
+
+#define BBG_LOGGER_MODULE       BBG_MODULE_LOGGER
 
 static const char* const node_message_id_names[ NODE_MSG_ID_MAX ] =
 {
@@ -68,10 +99,32 @@ static const char* const node_message_id_names[ NODE_MSG_ID_MAX ] =
     (const char*)"OBJECT_DETECTED",
     (const char*)"BOARD_TYPE",
     (const char*)"UID",
-    (const char*)"GET_SENSOR_STATUS",
+    (const char*)"GET_TEMPERATURE",
+    (const char*)"GET_LUX",
     (const char*)"GET_SENSOR_INFO",
     (const char*)"GET_CLIENT_BOARD_TYPE",
     (const char*)"GET_CLIENT_UID",
+};
+
+static const char* const board_id_names[ BOARD_ID_MAX ] =
+{
+    (const char*)"BOARD_ID_BBG",
+    (const char*)"BOARD_ID_TIVA",
+};
+
+static const char* const tiva_module_names[ TIVA_MODULE_MAX ] =
+{
+    (const char*)"TIVA_MODULE_TMP102",
+    (const char*)"TIVA_MODULE_APDS9301",
+    (const char*)"TIVA_MODULE_CAMERA",
+    (const char*)"TIVA_MOUDLE_COMM",
+    (const char*)"TIVA_MODULE_LED",
+};
+
+static const char* const bbg_module_names[ BBG_MODULE_MAX ] =
+{
+    (const char*)"BBG_MODULE_LOGGER",
+    (const char*)"BBG_MODULE_COMM",
 };
 
 typedef struct
@@ -133,5 +186,22 @@ static inline const char* get_message_id_name( node_message_e msg_id )
 {
     return node_message_id_names[ msg_id ];
 }
+
+static inline const char* get_board_id_name( board_e board_id )
+{
+    return board_id_names[ board_id ];
+}
+
+static inline const char* get_tiva_module_name( tiva_module_e module_id )
+{
+    return tiva_module_names[ module_id ];
+}
+
+static inline const char* get_bbg_module_name( bbg_module_e module_id )
+{
+    return bbg_module_names[ module_id ];
+}
+
+
 
 #endif /* COMMON_H */
