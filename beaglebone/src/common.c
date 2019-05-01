@@ -41,12 +41,33 @@ const char* const node_message_id_names[ NODE_MSG_ID_MAX ] =
     (const char*)"OBJECT_DETECTED",
     (const char*)"BOARD_TYPE",
     (const char*)"UID",
-    (const char*)"GET_SENSOR_STATUS",
+    (const char*)"GET_TEMPERATURE",
+    (const char*)"GET_LUX",
     (const char*)"GET_SENSOR_INFO",
     (const char*)"GET_CLIENT_BOARD_TYPE",
     (const char*)"GET_CLIENT_UID",
 };
 
+const char* const board_id_names[ BOARD_ID_MAX ] = 
+{
+    (const char*)"BOARD_ID_BBG",
+    (const char*)"BOARD_ID_TIVA",
+};
+
+const char* const tiva_module_names[ TIVA_MODULE_MAX ] =
+{
+    (const char*)"TIVA_MODULE_TMP102",
+    (const char*)"TIVA_MODULE_APDS9301",
+    (const char*)"TIVA_MODULE_CAMERA",
+    (const char*)"TIVA_MOUDLE_COMM",
+    (const char*)"TIVA_MODULE_LED",
+};
+
+const char* const bbg_module_names[ BBG_MODULE_MAX ] =
+{
+    (const char*)"BBG_MODULE_LOGGER",
+    (const char*)"BBG_MODULE_COMM",
+};
 
 const char* const task_names[ TASK_MAX ] = {
    (const char*)"LOGGER TASK",

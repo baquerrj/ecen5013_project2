@@ -25,7 +25,7 @@
 #include "common.h"
 #include "nrf_module.h"
 #include "uart.h"
-#define TIVA_BOARD
+//#define TIVA_BOARD
 
 #ifdef TIVA_BOARD
 #define TIVA_UART   UART_6

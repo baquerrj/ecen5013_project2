@@ -26,6 +26,7 @@
 #include <time.h>
 
 #include "common.h"
+#include "logger.h"
 #include "node_comm_task.h"
 #include "communication_interface.h"
 #include "nrf_module.h"
@@ -34,14 +35,98 @@
 
 typedef enum
 {
-    ROLE_SENDER = 0,
-    ROLE_RECV,
-    ROLE_MAX
-} role_e;
+    REQ_TEMP,
+    REQ_LUX
+} req_e;
+static timer_t    timerid;
+struct itimerspec trigger;
 
-volatile role_e role = ROLE_SENDER;
+static int uart_fd;
 
+static req_e req = REQ_TEMP;
 static mqd_t node_comm_task_queue;
+
+static message_t comm_log = {
+   .level      = LOG_INFO,
+   .timestamp  = {0},
+   .id         = MSG_STATUS,
+   .src        = TASK_NODE_COMM,
+   .msg        = {0}
+};
+
+
+static void dump_message( node_message_t *p )
+{
+    printf( "SRC BOARD ID: %s\tSRC ID: %s\n", get_board_id_name( p->src_brd_id ), get_bbg_module_name( p->src_id ) );
+    printf( "DST BOARD ID: %s\tDST ID: %s\n", get_board_id_name( p->dst_brd_id ), get_tiva_module_name( p->dst_id ) );
+    printf( "MSG ID: %s\n", get_message_id_name( p->msg_id ) );
+    printf( "MSG: %s\n", p->message );
+
+}
+
+/*!
+ * Function:       sig_handler
+ * @brief   Signal handler for temperature sensor thread.
+ *          On normal operation, we should be receving SIGUSR1/2 signals from watchdog
+ *          when prompted to exit. So, we close the message queue and timer this thread owns
+ *
+ * @param   signo - enum with signal number of signal being handled
+ * @return  void
+ */
+static void sig_handler( int signo )
+{
+    if( signo == SIGUSR1 )
+    {
+        LOG_INFO( "TEMP TASK: Received SIGUSR1! Exiting...\n");
+        mq_close( node_comm_task_queue );
+        timer_delete( timerid );
+        comm_deinit_uart( uart_fd );
+        thread_exit( signo );
+    }
+    else if( signo == SIGUSR2 )
+    {
+        LOG_INFO( "TEMP TASK: Received SIGUSR2! Exiting...\n");
+        mq_close( node_comm_task_queue );
+        timer_delete( timerid );
+        comm_deinit_uart( uart_fd );
+        thread_exit( signo );
+    }
+    return;
+}
+
+void comms_handler( union sigval sig )
+{
+    static node_message_t node_req_out;
+    node_req_out.src_brd_id = BOARD_ID_BBG;
+    node_req_out.src_id = BBG_MODULE_COMM;
+    node_req_out.dst_brd_id = BOARD_ID_TIVA;
+    switch( req )
+    {
+        case REQ_TEMP:
+        {
+            LOG_INFO( "REQ TEMP" );
+            node_req_out.dst_id = TIVA_MODULE_TMP102;
+            node_req_out.msg_id = NODE_MSG_ID_GET_TEMPERATURE;
+            CALC_CHECKSUM( &node_req_out );
+            comm_send_uart( &node_req_out );
+            dump_message( &node_req_out );
+            req = REQ_LUX;
+            break;
+        }
+        case REQ_LUX:
+        {
+            LOG_INFO( "REQ LUX" );
+            node_req_out.dst_id = TIVA_MODULE_APDS9301;
+            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
+            CALC_CHECKSUM( &node_req_out );
+            comm_send_uart( &node_req_out );
+            dump_message( &node_req_out );
+            req = REQ_TEMP;
+            break;
+        }
+    }
+}
+
 
 mqd_t get_node_comm_queue( void )
 {
@@ -68,50 +153,106 @@ mqd_t node_comm_task_queue_init( void )
     return msg_q;
 }
 
+static int8_t startup( void )
+{
+    uint8_t tiva_detected = 0;
+    uint32_t attempts = 0;
+    node_message_t node_msg = {0};
+    while( !tiva_detected && 100 > attempts )
+    {
+        memset( &node_msg, 0, sizeof( node_msg ) );
+        comm_recv_uart( &node_msg );
+        if( (node_msg.src_brd_id == TIVA_BOARD_ID) && (node_msg.dst_brd_id == BBG_BOARD_ID) )
+        {
+            LOG_INFO( "TIVA DETECTED\n" );
+            dump_message( &node_msg );
+            tiva_detected = 1;
+        }
+        else
+        {
+            attempts++;
+            delayMs( 5 );
+            continue;
+        }
+    }
+    if( !tiva_detected || 100 < attempts )
+    {
+        return -1;
+    }
+    return 0;
+}
+
+
 static void cycle( void )
 {
-    role = ROLE_SENDER;
+    node_message_t node_msg_in = {0};
     while( 1 )
     {
-        if( ROLE_RECV == role )
+        memset( &node_msg_in, 0, sizeof( node_msg_in ) );
+        comm_recv_uart( &node_msg_in );
+        switch( node_msg_in.msg_id )
         {
-            LOG_INFO( "WAITING TO RECEIVE\n" );
-            nrf_start_listening();
-            unsigned long time = __millis();
-            while( !nrf_available() )
+            case NODE_MSG_ID_ALIVE:
             {
-                delayMs( 5 );
+                break;
             }
-            LOG_INFO( "NEW DATA AVAILABLE\n" );
-            unsigned long data;
-            nrf_read( &data, sizeof( unsigned long ) );
-            LOG_INFO( "DATA: 0%lx\n", data );
-            role = ROLE_SENDER;
-        }
-        else if( ROLE_SENDER == role )
-        {
-            LOG_INFO( "PREPARING TO SEND\n" );
-            nrf_stop_listening();
-            unsigned long time = __millis();
-
-            LOG_INFO( "SENDING %lu\n", time );
-            uint8_t ok = nrf_write( &time, sizeof( unsigned long ) );
-
-            if( ok )
+            case NODE_MSG_ID_INFO:
             {
-                LOG_INFO( "TX SUCCESS\n" );
+                break;
             }
-            else
+            case NODE_MSG_ID_ERROR:
             {
-                LOG_ERROR( "TX FAILED\n" );
+                break;
             }
-            //role = ROLE_RECV;
+            case NODE_MSG_ID_WARNING:
+            {
+                break;
+            }
+            case NODE_MSG_ID_PICTURE:
+            {
+                break;
+            }
+            case NODE_MSG_ID_OBJECT_DETECTED:
+            {
+                break;
+            }
+            case NODE_MSG_ID_BOARD_TYPE:
+            {
+                break;
+            }
+            case NODE_MSG_ID_UID:
+            {
+                break;
+            }
+            case NODE_MSG_ID_SENSOR_STATUS:
+            {
+                switch( node_msg_in.src_id )
+                {
+                    case TIVA_MODULE_TMP102:
+                    {
+                        comm_log.id = MSG_STATUS;
+                        LOG_TASK_MSG( &comm_log, "TEMP: %.5f C\n", node_msg_in.data.sensor_value );
+                        break;
+                    }
+                    case TIVA_MODULE_APDS9301:
+                    {
+                        comm_log.id = MSG_STATUS;
+                        LOG_TASK_MSG( &comm_log, "LUX: %.5f LUX\n",  node_msg_in.data.sensor_value );
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+            default:
+                break;
         }
     }
 }
 
 void* node_comm_task_fn( void *thread_args )
 {
+    __start_timer();
     LOG_INFO( "NODE COMM TASK STARTED\n" );
     node_comm_task_queue = node_comm_task_queue_init();
 
@@ -121,17 +262,41 @@ void* node_comm_task_fn( void *thread_args )
         thread_exit( EXIT_INIT );
     }
 
-    if( 0 > comm_init_nrf() )
+//    if( 0 > comm_init_nrf() )
+//    {
+//        LOG_ERROR( "NODE COMM TASK: NRF INIT\n" );
+//        thread_exit( EXIT_INIT );
+//    }
+
+    uart_fd = comm_init_uart();
+    if( 0 > uart_fd )
     {
-        LOG_ERROR( "NODE COMM TASK: NRF INIT\n" );
+        LOG_ERROR( "NOCE COMM TASK UART INIT\n" );
         thread_exit( EXIT_INIT );
     }
 
 
     LOG_INFO( "NODE COMM TASK INITIALIZED\n" );
+
+    uint8_t retries = 100;
+    while( retries > 0 && 0 != startup() )
+    {
+        LOG_ERROR( "TIMED OUT WAITING FOR TIVA. Retrying...\n" );
+        retries--;
+    }
+    if( 0 == retries )
+    {
+        thread_exit( EXIT_INIT );
+    }
+
+    timer_setup( &timerid, &comms_handler );
+
+    timer_start( &timerid, FREQ_1HZ );
+
     cycle();
 
-    comm_deinit_nrf();
+//    comm_deinit_nrf();
+    comm_deinit_uart( uart_fd );
     thread_exit( 0 );
     return NULL;
 }
