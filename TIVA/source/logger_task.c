@@ -69,7 +69,7 @@ void logger_task( void *params )
         }
         else
         {
-            puts( "ERROR - LOGGER TASK - QUEUE RECV\n" );
+            continue;
         }
     }
 }

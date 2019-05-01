@@ -74,11 +74,11 @@ int main( void )
         while(1);
     }
 
-//    if( 0 != node_comm_task_init() )
-//    {
-//        puts( ERROR " NODE COMM TASK INIT\n" );
-//        while(1);
-//    }
+    if( 0 != node_comm_task_init() )
+    {
+        puts( ERROR " NODE COMM TASK INIT\n" );
+        while(1);
+    }
 
 
     I2C2_init();  /* Configure I2C Bus 2 for use with TMP102 sensor */
