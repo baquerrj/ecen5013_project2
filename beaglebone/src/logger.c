@@ -38,6 +38,15 @@
 struct itimerspec trigger;
 static FILE *log;
 
+static message_t logger_log = {
+   .level      = LEVEL_INFO,
+   .timestamp  = {0},
+   .id         = MSG_STATUS,
+   .src        = TASK_LOGGER,
+   .msg        = {0}
+};
+
+
 static mqd_t logger_queue;
 
 uint8_t log_msg( mqd_t queue, const message_t *msg, size_t size, int priority )
@@ -96,25 +105,27 @@ void logger_cycle( void )
          continue;
       }
       switch( msg.id )
-      {
+      { 
          case MSG_ALIVE:
          {
             pthread_mutex_lock( &alive_mutex );
             threads_status[TASK_LOGGER]--;
             pthread_mutex_unlock( &alive_mutex );
+            LOG_MSG( log, INFO"FROM: %s ----- %s",
+                    get_task_name(TASK_LOGGER), "I AM ALIVED!\n" );
             break;
          }
          case MSG_STATUS:
          {
             switch( msg.level )
             {
-               case LOG_ERROR:
+               case LEVEL_ERROR:
                {
                   LOG_MSG( log, ERROR"FROM: %s ----- %s",
                      get_task_name(msg.src), msg.msg );
                   break;
                }
-               case LOG_INFO:
+               case LEVEL_INFO:
                {
                   LOG_MSG( log, INFO"FROM: %s ----- %s",
                            get_task_name(msg.src), msg.msg );
@@ -205,12 +216,11 @@ void *logger_fn( void *arg )
       pthread_exit( &failure );
    }
 
+   LOG_TASK_MSG( LEVEL_INFO, &logger_log, "LOGGER TASK INITIALIZED\n" );
    LOG_INFO( "LOGGER TASK INITIALIZED\n" );
 
    logger_cycle();
-   while( 1 )
-   {
-   }
+   while( 1 );
 
    return NULL;
 }

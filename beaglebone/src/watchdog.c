@@ -63,10 +63,16 @@ static void sig_handler( int signo )
  */
 void kill_threads( void )
 {
-   fprintf( stdout, "watchdog caught signals - killing thread [%ld]\n",
-            task_id[TASK_LOGGER] );
-   fflush( stdout );
-   pthread_kill( task_id[TASK_LOGGER], SIGUSR1 );
+    for( uint8_t task = 0; task < TASK_WATCHDOG; ++task )
+    {
+        LOG_INFO( "KILLING: %s", get_task_name( task ) );
+        pthread_kill( task_id[ task ], SIGUSR1 );
+    }
+
+//    fprintf( stdout, "watchdog caught signals - killing thread [%ld]\n",
+//            task_id[TASK_LOGGER] );
+//   fflush( stdout );
+//   pthread_kill( task_id[TASK_LOGGER], SIGUSR1 );
 
    return;
 }

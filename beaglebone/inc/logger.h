@@ -41,8 +41,9 @@
       fflush( fp ); \
       }while(0)
 
-#define LOG_TASK_MSG(p_logstruct, fmt, ...)  \
+#define LOG_TASK_MSG( log_level, p_logstruct, fmt, ...)  \
     do{ \
+        (p_logstruct)->level = log_level; \
         snprintf((p_logstruct)->msg,sizeof((p_logstruct)->msg),fmt, ##__VA_ARGS__);   \
         convert_timestamp((p_logstruct)->timestamp, sizeof((p_logstruct)->timestamp)); \
         log_msg( get_logger_queue(), p_logstruct, sizeof(*p_logstruct), 20); \

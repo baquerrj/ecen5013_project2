@@ -39,6 +39,15 @@
 #include "node_comm_task.h"
 #include "communication_interface.h"
 
+static message_t main_log = {
+   .level      = LEVEL_INFO,
+   .timestamp  = {0},
+   .id         = MSG_STATUS,
+   .src        = TASK_MAIN,
+   .msg        = {0}
+};
+
+
 void* (*thread_entry_fn[ NUM_THREADS ])(void *) =
 {
     logger_fn,
