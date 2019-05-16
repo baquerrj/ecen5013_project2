@@ -78,12 +78,14 @@ void tmp102_task_callback( TimerHandle_t timer )
         {
             /* Notify Alert Task of out-of-range temperature */
             xTaskNotify( g_pAlertTaskHandle, MSG_TEMP_HIGH, eSetBits );
+            log_msg_out.level = LOG_WARNING;
             SENSOR_MSG( &log_msg_out, "HIGH TEMP!" );
         }
         else if( LOW_TEMPERATURE > i )
         {
             /* Notify Alert Task of out-of-range temperature */
             xTaskNotify( g_pAlertTaskHandle, MSG_TEMP_LOW, eSetBits );
+            log_msg_out.level = LOG_WARNING;
             SENSOR_MSG( &log_msg_out, "LOW TEMP!" );
         }
 
