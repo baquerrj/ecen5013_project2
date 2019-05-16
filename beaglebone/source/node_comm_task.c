@@ -47,7 +47,7 @@ static req_e req = REQ_TEMP;
 static mqd_t node_comm_task_queue;
 
 static message_t comm_log = {
-   .level      = LOG_INFO,
+   .level      = LEVEL_INFO,
    .timestamp  = {0},
    .id         = MSG_STATUS,
    .src        = TASK_NODE_COMM,
@@ -77,7 +77,7 @@ static void sig_handler( int signo )
 {
     if( signo == SIGUSR1 )
     {
-        LOG_INFO( "TEMP TASK: Received SIGUSR1! Exiting...\n");
+        LOG_INFO( "NODE COMM TASK: Received SIGUSR1! Exiting...\n");
         mq_close( node_comm_task_queue );
         timer_delete( timerid );
         comm_deinit_uart( uart_fd );
@@ -85,7 +85,7 @@ static void sig_handler( int signo )
     }
     else if( signo == SIGUSR2 )
     {
-        LOG_INFO( "TEMP TASK: Received SIGUSR2! Exiting...\n");
+        LOG_INFO( "NODE COMM TASK: Received SIGUSR2! Exiting...\n");
         mq_close( node_comm_task_queue );
         timer_delete( timerid );
         comm_deinit_uart( uart_fd );
@@ -97,34 +97,43 @@ static void sig_handler( int signo )
 void comms_handler( union sigval sig )
 {
     static node_message_t node_req_out;
-    node_req_out.src_brd_id = BOARD_ID_BBG;
-    node_req_out.src_id = BBG_MODULE_COMM;
-    node_req_out.dst_brd_id = BOARD_ID_TIVA;
-    switch( req )
+    node_req_out.msg_id = NODE_MSG_ID_GET_BOARD_TYPE;
+//    node_req_out.src_brd_id = BOARD_ID_BBG;
+//    node_req_out.src_id = BBG_MODULE_COMM;
+//    node_req_out.dst_brd_id = BOARD_ID_TIVA;
+    switch( node_req_out.msg_id )
     {
-        case REQ_TEMP:
+        case NODE_MSG_ID_GET_TEMP:
         {
-            LOG_INFO( "REQ TEMP" );
-            node_req_out.dst_id = TIVA_MODULE_TMP102;
-            node_req_out.msg_id = NODE_MSG_ID_GET_TEMPERATURE;
-            CALC_CHECKSUM( &node_req_out );
-            comm_send_uart( &node_req_out );
-            dump_message( &node_req_out );
-            req = REQ_LUX;
+            LOG_TASK_MSG( LEVEL_INFO, "REQ TEMP" );
+//            node_req_out.dst_id = TIVA_MODULE_TMP102;
+//            node_req_out.msg_id = NODE_MSG_ID_GET_TEMPERATURE;
+            send_get_temperature();
             break;
         }
-        case REQ_LUX:
+        case NODE_MSG_ID_GET_LUX:
         {
-            LOG_INFO( "REQ LUX" );
-            node_req_out.dst_id = TIVA_MODULE_APDS9301;
-            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
-            CALC_CHECKSUM( &node_req_out );
-            comm_send_uart( &node_req_out );
-            dump_message( &node_req_out );
-            req = REQ_TEMP;
+            LOG_TASK_MSG( LEVEL_INFO, "REQ LUX" );
+//            node_req_out.dst_id = TIVA_MODULE_APDS9301;
+//            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
+            send_get_lux();
             break;
         }
+        case NODE_MSG_ID_GET_CLIENT_BOARD_TYPE:
+        {
+            LOG_TASK_MSG( LEVEL_INFO, "REQ BOARD TYPE" );
+//            node_req_out.dst_id = TIVA_MODULE_COMM;
+//            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
+            send_get_board_type();
+            break;
+            
+        }
+        default:
+            break;
     }
+//    CALC_CHECKSUM( &node_req_out );
+//    comm_send_uart( &node_req_out );
+    dump_message( &node_req_out );
 }
 
 
@@ -158,8 +167,14 @@ static int8_t startup( void )
     uint8_t tiva_detected = 0;
     uint32_t attempts = 0;
     node_message_t node_msg = {0};
+    node_message_t node_msg_out = {0};
     while( !tiva_detected && 100 > attempts )
     {
+        node_msg_out.dst_id = TIVA_MODULE_COMM;
+        node_msg_out.msg_id = NODE_MSG_ID_ALIVE;
+        CALC_CHECKSUM( &node_msg_out );
+        comm_send_uart( &node_msg_out );
+        delayMs( 5 );
         memset( &node_msg, 0, sizeof( node_msg ) );
         comm_recv_uart( &node_msg );
         if( (node_msg.src_brd_id == TIVA_BOARD_ID) && (node_msg.dst_brd_id == BBG_BOARD_ID) )
@@ -228,16 +243,17 @@ static void cycle( void )
             {
                 switch( node_msg_in.src_id )
                 {
+                    dump_message( &node_msg_in );
                     case TIVA_MODULE_TMP102:
                     {
                         comm_log.id = MSG_STATUS;
-                        LOG_TASK_MSG( &comm_log, "TEMP: %.5f C\n", node_msg_in.data.sensor_value );
+                        LOG_TASK_MSG( LEVEL_INFO, &comm_log, "TEMP: %.5f C\n", node_msg_in.data.sensor_value );
                         break;
                     }
                     case TIVA_MODULE_APDS9301:
                     {
                         comm_log.id = MSG_STATUS;
-                        LOG_TASK_MSG( &comm_log, "LUX: %.5f LUX\n",  node_msg_in.data.sensor_value );
+                        LOG_TASK_MSG( LEVEL_INFO, &comm_log, "LUX: %.5f LUX\n",  node_msg_in.data.sensor_value );
                         break;
                     }
                     default:
@@ -258,6 +274,7 @@ void* node_comm_task_fn( void *thread_args )
 
     if( 0 > node_comm_task_queue )
     {
+        LOG_TASK_MSG( LEVEL_ERROR,  &comm_log, "NODE COMM TASK INIT" );
         LOG_ERROR( "NODE COMM TASK INIT\n" );
         thread_exit( EXIT_INIT );
     }
@@ -268,14 +285,18 @@ void* node_comm_task_fn( void *thread_args )
 //        thread_exit( EXIT_INIT );
 //    }
 
+    signal( SIGUSR1, sig_handler );
+    signal( SIGUSR2, sig_handler );
+
     uart_fd = comm_init_uart();
     if( 0 > uart_fd )
     {
+        LOG_TASK_MSG( LEVEL_ERROR, &comm_log, "NOCE COMM TASK UART INIT\n" );
         LOG_ERROR( "NOCE COMM TASK UART INIT\n" );
         thread_exit( EXIT_INIT );
     }
 
-
+    LOG_TASK_MSG( LEVEL_INFO, &comm_log, "NODE COMM TASK INITIALIZED\n" );
     LOG_INFO( "NODE COMM TASK INITIALIZED\n" );
 
     uint8_t retries = 100;

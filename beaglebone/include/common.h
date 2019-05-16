@@ -82,7 +82,8 @@ typedef enum {
    TASK_LOGGER = 0,
    TASK_NODE_COMM,
    TASK_WATCHDOG,
-   TASK_MAX
+   TASK_MAIN,
+   TASK_MAX = TASK_MAIN
 } task_e;
 
 #define NUM_THREADS         (TASK_MAX)
@@ -92,10 +93,10 @@ pthread_t task_id[ TASK_MAX ];
 /*! @brief Logging levels */
 typedef enum
 {
-   LOG_ERROR,
-   LOG_WARNING,
-   LOG_INFO,
-   LOG_ALL
+   LEVEL_ERROR,
+   LEVEL_WARNING,
+   LEVEL_INFO,
+   LEVEL_ALL
 } log_level_e;
 
 

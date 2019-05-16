@@ -53,8 +53,8 @@ volatile uint8_t retry_error = 0;
 static uint8_t dynamic_payloads_enabled;
 static uint8_t interrupts_enabled = 0;
 
-static uint8_t ack_payload_available;
-static uint8_t ack_payload_length;
+//static uint8_t ack_payload_available;
+//static uint8_t ack_payload_length;
 static uint8_t payload_size = 32;
 
 uint8_t pipe0_reading_address = 0;
