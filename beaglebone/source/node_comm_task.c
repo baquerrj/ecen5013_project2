@@ -97,34 +97,43 @@ static void sig_handler( int signo )
 void comms_handler( union sigval sig )
 {
     static node_message_t node_req_out;
-    node_req_out.src_brd_id = BOARD_ID_BBG;
-    node_req_out.src_id = BBG_MODULE_COMM;
-    node_req_out.dst_brd_id = BOARD_ID_TIVA;
-    switch( req )
+    node_req_out.msg_id = NODE_MSG_ID_GET_BOARD_TYPE;
+//    node_req_out.src_brd_id = BOARD_ID_BBG;
+//    node_req_out.src_id = BBG_MODULE_COMM;
+//    node_req_out.dst_brd_id = BOARD_ID_TIVA;
+    switch( node_req_out.msg_id )
     {
-        case REQ_TEMP:
+        case NODE_MSG_ID_GET_TEMP:
         {
-            LOG_INFO( "REQ TEMP" );
-            node_req_out.dst_id = TIVA_MODULE_TMP102;
-            node_req_out.msg_id = NODE_MSG_ID_GET_TEMPERATURE;
-            CALC_CHECKSUM( &node_req_out );
-            comm_send_uart( &node_req_out );
-            dump_message( &node_req_out );
-            req = REQ_LUX;
+            LOG_TASK_MSG( LEVEL_INFO, "REQ TEMP" );
+//            node_req_out.dst_id = TIVA_MODULE_TMP102;
+//            node_req_out.msg_id = NODE_MSG_ID_GET_TEMPERATURE;
+            send_get_temperature();
             break;
         }
-        case REQ_LUX:
+        case NODE_MSG_ID_GET_LUX:
         {
-            LOG_INFO( "REQ LUX" );
-            node_req_out.dst_id = TIVA_MODULE_APDS9301;
-            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
-            CALC_CHECKSUM( &node_req_out );
-            comm_send_uart( &node_req_out );
-            dump_message( &node_req_out );
-            req = REQ_TEMP;
+            LOG_TASK_MSG( LEVEL_INFO, "REQ LUX" );
+//            node_req_out.dst_id = TIVA_MODULE_APDS9301;
+//            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
+            send_get_lux();
             break;
         }
+        case NODE_MSG_ID_GET_CLIENT_BOARD_TYPE:
+        {
+            LOG_TASK_MSG( LEVEL_INFO, "REQ BOARD TYPE" );
+//            node_req_out.dst_id = TIVA_MODULE_COMM;
+//            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
+            send_get_board_type();
+            break;
+            
+        }
+        default:
+            break;
     }
+//    CALC_CHECKSUM( &node_req_out );
+//    comm_send_uart( &node_req_out );
+    dump_message( &node_req_out );
 }
 
 
