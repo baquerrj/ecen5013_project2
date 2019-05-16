@@ -1,1 +1,6 @@
-/Debug/
+./**/Debug/**/*.obj
+./**/Debug/**/*.d
+
+
+
+
