@@ -69,7 +69,7 @@ void comm_task( void *params )
                 comm_send_uart( &node_msg );
                 LOG_TASK_MSG( &node_comm_log, "TX LUX" );
             }
-            else if( alert_type & NODE_MSG_ID_ALIVE )
+            else if( alert_type & NODE_MSG_ID_GET_CLIENT_BOARD_TYPE )
             {
                 node_msg.msg_id = NODE_MSG_ID_GET_CLIENT_BOARD_TYPE;
                 NDOE_MSG( node_msg, "TM4C1924XL" );
