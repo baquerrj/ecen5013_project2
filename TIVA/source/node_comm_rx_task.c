@@ -87,7 +87,7 @@ uint8_t node_comm_rx_task_init()
 
     /* Create the task*/
     if(xTaskCreate(node_receiver_task, (const portCHAR *)"NODE_RX_TASK", MY_STACK_SIZE, NULL,
-                       tskIDLE_PRIORITY + 1, &g_pNodeRxTaskHandle) != pdTRUE)
+                       tskIDLE_PRIORITY + PRIO_COMM_TASK, &g_pNodeRxTaskHandle) != pdTRUE)
     {
         return 1;
     }
