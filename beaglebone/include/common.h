@@ -32,6 +32,8 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 
+#include "delay.h"
+
 #define MSG_SIZE 100
 #define MAX_MESSAGES 100
 

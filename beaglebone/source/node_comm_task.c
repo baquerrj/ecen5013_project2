@@ -32,17 +32,11 @@
 
 #define NODE_COMM_QUEUE "/node_comm_queue"
 
-typedef enum
-{
-    REQ_TEMP,
-    REQ_LUX
-} req_e;
 static timer_t    timerid;
 struct itimerspec trigger;
 
 static int uart_fd;
 
-static req_e req = REQ_TEMP;
 static mqd_t node_comm_task_queue;
 
 static message_t comm_log = {
@@ -96,15 +90,15 @@ static void sig_handler( int signo )
 void comms_handler( union sigval sig )
 {
     static node_message_t node_req_out;
-    node_req_out.msg_id = NODE_MSG_ID_GET_BOARD_TYPE;
+    node_req_out.msg_id =  NODE_MSG_ID_GET_CLIENT_BOARD_TYPE;
 //    node_req_out.src_brd_id = BOARD_ID_BBG;
 //    node_req_out.src_id = BBG_MODULE_COMM;
 //    node_req_out.dst_brd_id = BOARD_ID_TIVA;
     switch( node_req_out.msg_id )
     {
-        case NODE_MSG_ID_GET_TEMP:
+        case NODE_MSG_ID_GET_TEMPERATURE:
         {
-            LOG_TASK_MSG( LEVEL_INFO, "REQ TEMP" );
+            LOG_TASK_MSG( LEVEL_INFO, &comm_log, "REQ TEMP" );
 //            node_req_out.dst_id = TIVA_MODULE_TMP102;
 //            node_req_out.msg_id = NODE_MSG_ID_GET_TEMPERATURE;
             send_get_temperature();
@@ -112,7 +106,7 @@ void comms_handler( union sigval sig )
         }
         case NODE_MSG_ID_GET_LUX:
         {
-            LOG_TASK_MSG( LEVEL_INFO, "REQ LUX" );
+            LOG_TASK_MSG( LEVEL_INFO, &comm_log, "REQ LUX" );
 //            node_req_out.dst_id = TIVA_MODULE_APDS9301;
 //            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
             send_get_lux();
@@ -120,7 +114,7 @@ void comms_handler( union sigval sig )
         }
         case NODE_MSG_ID_GET_CLIENT_BOARD_TYPE:
         {
-            LOG_TASK_MSG( LEVEL_INFO, "REQ BOARD TYPE" );
+            LOG_TASK_MSG( LEVEL_INFO, &comm_log, "REQ BOARD TYPE" );
 //            node_req_out.dst_id = TIVA_MODULE_COMM;
 //            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
             send_get_board_type();
@@ -130,7 +124,7 @@ void comms_handler( union sigval sig )
         default:
             break;
     }
-//    CALC_CHECKSUM( &node_req_out );
+//    getCheckSum( &node_req_out );
 //    comm_send_uart( &node_req_out );
     dump_message( &node_req_out );
 }
@@ -171,7 +165,7 @@ static int8_t startup( void )
     {
         node_msg_out.dst_id = TIVA_MODULE_COMM;
         node_msg_out.msg_id = NODE_MSG_ID_ALIVE;
-        CALC_CHECKSUM( &node_msg_out );
+        getCheckSum( &node_msg_out );
         comm_send_uart( &node_msg_out );
         delayMs( 5 );
         memset( &node_msg, 0, sizeof( node_msg ) );

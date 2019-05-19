@@ -53,8 +53,8 @@ mqd_t get_node_comm_queue( void );
 static inline void send_get_client_board_info( void )
 {
     CREATE_NODE_MESSAGE( node_req_out, BOARD_ID_BBG, BBG_MODULE_COMM, TIVA_MODULE_COMM );
-    node_req_out.msg_id = NODE_MSG_ID_GET_CLIENT_BOARD_TYPE;
-    node_req_out.checksum = getCheckSum( node_req_out );
+    node_req_out.msg_id = NODE_MSG_ID_GET_CLIENT_BOARD_TYPE,
+    node_req_out.checksum = getCheckSum( &node_req_out );
     comm_send_uart( &node_req_out );
 }
 
@@ -66,7 +66,7 @@ static inline void send_get_lux( void )
 {
     CREATE_NODE_MESSAGE( node_req_out, BOARD_ID_BBG, BBG_MODULE_COMM, TIVA_MODULE_APDS9301 );
     node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
-    node_req_out.checksum = getCheckSum( node_req_out );
+    node_req_out.checksum = getCheckSum( &node_req_out );
     comm_send_uart( &node_req_out );
 }
 
@@ -81,7 +81,7 @@ static inline void send_get_temperature( void )
 {
     CREATE_NODE_MESSAGE( node_req_out, BOARD_ID_BBG, BBG_MODULE_COMM, TIVA_MODULE_TMP102 );
     node_req_out.msg_id = NODE_MSG_ID_GET_TEMPERATURE;
-    node_req_out.checksum = getCheckSum( node_req_out );
+    node_req_out.checksum = getCheckSum( &node_req_out );
     comm_send_uart( &node_req_out );
 }
 
@@ -93,8 +93,8 @@ static inline void send_get_temperature( void )
 static inline void send_get_board_type( void )
 {
     CREATE_NODE_MESSAGE( node_req_out, BOARD_ID_BBG, BBG_MODULE_COMM, TIVA_MODULE_COMM );
-    node_req_out.msg_id = NODE_MSG_ID_GET_BOARD_TYPE;
-    node_req_out.checksum = getCheckSum( node_req_out );
+    node_req_out.msg_id = NODE_MSG_ID_GET_CLIENT_BOARD_TYPE,
+    node_req_out.checksum = getCheckSum( &node_req_out );
     comm_send_uart( &node_req_out );
 }
 
