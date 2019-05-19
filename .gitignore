@@ -1,6 +1,6 @@
-# Debug Directory
-./Debug
-
+# CSS Object and Dependency files
+./**/Debug/**/*.obj
+./**/Debug/**/*.d
 
 # Prerequisites
 *.d
