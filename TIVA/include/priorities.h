@@ -31,9 +31,9 @@
 //
 //*****************************************************************************
 #define PRIO_LOG_TASK       1
-#define PRIO_LED_TASK       1
-#define PRIO_TMP_TASK       1
-#define PRIO_APDS9301_TASK  1
+#define PRIO_LED_TASK       3
+#define PRIO_TMP_TASK       3
+#define PRIO_APDS9301_TASK  3
 #define PRIO_ALERT_TASK     2
-#define PRIO_COMM_TASK      3
+#define PRIO_COMM_TASK      0
 #endif /* PRIORITIES_H */
