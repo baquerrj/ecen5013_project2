@@ -72,7 +72,7 @@ void comm_task( void *params )
             else if( alert_type & NODE_MSG_ID_GET_CLIENT_BOARD_TYPE )
             {
                 node_msg.msg_id = NODE_MSG_ID_GET_CLIENT_BOARD_TYPE;
-                NDOE_MSG( node_msg, "TM4C1924XL" );
+                strncpy( node_msg.message, "TM4C1924XL", sizeof(node_msg.message) );
                 CALC_CHECKSUM( &node_msg );
                 comm_send_uart( &node_msg );
                 LOG_TASK_MSG( &node_comm_log, "TX ALIVE" );

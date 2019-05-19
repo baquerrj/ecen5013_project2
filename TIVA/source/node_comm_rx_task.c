@@ -33,8 +33,8 @@ static void node_receiver_task(void *params)
     while(1)
     {
         memset(&node_msg_in, 0 , sizeof(node_msg_in));
-        size_t ret = comm_recv_uart(&node_msg_in);
-        if(ret > 0)
+        int32_t ret = comm_recv_uart(&node_msg_in);
+        if(0 > ret)
         {
             if(node_msg_in.src_brd_id == BOARD_ID_BBG )
             {
