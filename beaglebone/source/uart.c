@@ -148,6 +148,8 @@ int32_t uart_read( void *p, size_t len )
         return -1;
     }
 
+    uint32_t timeout = 1;   // timeout of 1 ms
+    while( 1 != uart_new_data( timeout ) );
     int ret = 0, retry = 0, i = 0;
     do
     {
@@ -156,7 +158,7 @@ int32_t uart_read( void *p, size_t len )
         retry++;
     } while( (ret > -1) && (i < len) && (retry < 16) );
 
-    return ret;
+    return ret;   // should be number of bytes received (hopefully)
 }
 
 int32_t uart_new_data( uint32_t ms )

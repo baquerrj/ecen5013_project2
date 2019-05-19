@@ -87,18 +87,23 @@ static void sig_handler( int signo )
     return;
 }
 
+#define _COMM_DEBUG_
 void comms_handler( union sigval sig )
 {
     static node_message_t node_req_out;
+#ifdef _COMM_DEBUG_
     node_req_out.msg_id =  NODE_MSG_ID_GET_CLIENT_BOARD_TYPE;
-//    node_req_out.src_brd_id = BOARD_ID_BBG;
-//    node_req_out.src_id = BBG_MODULE_COMM;
-//    node_req_out.dst_brd_id = BOARD_ID_TIVA;
+    node_req_out.src_brd_id = BOARD_ID_BBG;
+    node_req_out.src_id = BBG_MODULE_COMM;
+    node_req_out.dst_brd_id = BOARD_ID_TIVA;
+    node_req_out.checksum = getCheckSum( &node_req_out );
+    comm_send_uart( &node_req_out );
+#else
     switch( node_req_out.msg_id )
     {
         case NODE_MSG_ID_GET_TEMPERATURE:
         {
-            LOG_TASK_MSG( LEVEL_INFO, &comm_log, "REQ TEMP" );
+            LOG_TASK_MSG( LEVEL_INFO, &comm_log, "REQ TEMP\n" );
 //            node_req_out.dst_id = TIVA_MODULE_TMP102;
 //            node_req_out.msg_id = NODE_MSG_ID_GET_TEMPERATURE;
             send_get_temperature();
@@ -106,7 +111,7 @@ void comms_handler( union sigval sig )
         }
         case NODE_MSG_ID_GET_LUX:
         {
-            LOG_TASK_MSG( LEVEL_INFO, &comm_log, "REQ LUX" );
+            LOG_TASK_MSG( LEVEL_INFO, &comm_log, "REQ LUX\n" );
 //            node_req_out.dst_id = TIVA_MODULE_APDS9301;
 //            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
             send_get_lux();
@@ -114,7 +119,7 @@ void comms_handler( union sigval sig )
         }
         case NODE_MSG_ID_GET_CLIENT_BOARD_TYPE:
         {
-            LOG_TASK_MSG( LEVEL_INFO, &comm_log, "REQ BOARD TYPE" );
+            LOG_TASK_MSG( LEVEL_INFO, &comm_log, "REQ BOARD TYPE\n" );
 //            node_req_out.dst_id = TIVA_MODULE_COMM;
 //            node_req_out.msg_id = NODE_MSG_ID_GET_LUX;
             send_get_board_type();
@@ -127,6 +132,7 @@ void comms_handler( union sigval sig )
 //    getCheckSum( &node_req_out );
 //    comm_send_uart( &node_req_out );
     dump_message( &node_req_out );
+#endif
 }
 
 
@@ -169,7 +175,10 @@ static int8_t startup( void )
         comm_send_uart( &node_msg_out );
         delayMs( 5 );
         memset( &node_msg, 0, sizeof( node_msg ) );
-        comm_recv_uart( &node_msg );
+        if( 0 > comm_recv_uart( &node_msg ) )
+        {
+            continue;
+        }
         if( (node_msg.src_brd_id == TIVA_BOARD_ID) && (node_msg.dst_brd_id == BBG_BOARD_ID) )
         {
             LOG_INFO( "TIVA DETECTED\n" );
@@ -197,9 +206,14 @@ static void cycle( void )
     while( 1 )
     {
         memset( &node_msg_in, 0, sizeof( node_msg_in ) );
-        comm_recv_uart( &node_msg_in );
+        if( 0 >  comm_recv_uart( &node_msg_in ) )
+        {
+            continue;
+        }
         switch( node_msg_in.msg_id )
         {
+            LOG_INFO( "MESSAGE RECEIVED\n" );
+            LED0_ON;
             case NODE_MSG_ID_ALIVE:
             {
                 break;
@@ -226,6 +240,8 @@ static void cycle( void )
             }
             case NODE_MSG_ID_BOARD_TYPE:
             {
+                comm_log.id = MSG_STATUS;
+                LOG_TASK_MSG( LEVEL_INFO, &comm_log, "REMOTE NODE %s\n", node_msg_in.message );
                 break;
             }
             case NODE_MSG_ID_UID:
@@ -236,7 +252,7 @@ static void cycle( void )
             {
                 switch( node_msg_in.src_id )
                 {
-                    dump_message( &node_msg_in );
+//                    dump_message( &node_msg_in );
                     case TIVA_MODULE_TMP102:
                     {
                         comm_log.id = MSG_STATUS;
@@ -255,6 +271,8 @@ static void cycle( void )
             }
             default:
                 break;
+
+            LED0_OFF;
         }
     }
 }
