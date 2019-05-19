@@ -112,7 +112,7 @@ void logger_cycle( void )
             threads_status[TASK_LOGGER]--;
             pthread_mutex_unlock( &alive_mutex );
             LOG_MSG( log, INFO"FROM: %s ----- %s",
-                    get_task_name(TASK_LOGGER), "I AM ALIVED!\n" );
+                    get_task_name(TASK_LOGGER), "I AM ALIVE!\n" );
             break;
          }
          case MSG_STATUS:
