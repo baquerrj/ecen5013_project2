@@ -27,7 +27,7 @@ BUILD	:= build
 SRCS  	:= $(wildcard ./$(SRC)/*.c)
 OBJS  	:= $(patsubst ./$(SRC)/%.c, ./$(BUILD)/%.o, $(SRCS))
 
-PROG	:= $(BIN)/remote_node_comm
+PROG	:= $(BIN)/controller_node
 
 CFLAGS	:= -Wall -g3 -pthread -I./$(INC)
 LFLAGS  := -lrt -lm -lmraa
