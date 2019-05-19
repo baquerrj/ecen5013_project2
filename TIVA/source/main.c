@@ -35,6 +35,8 @@
 #include "apds9301_task.h"
 #include "node_comm_task.h"
 
+#define _COMM_DEBUG_
+
 uint32_t g_sysClock = CLOCK_FREQ;
 
 //*****************************************************************************
@@ -81,6 +83,7 @@ int main( void )
     }
 
 
+#ifndef _COMM_DEBUG_
     I2C2_init();  /* Configure I2C Bus 2 for use with TMP102 sensor */
 
     if( 0 != apds9301_task_init() )
@@ -101,6 +104,7 @@ int main( void )
         puts( ERROR " ALERT TASK INIT\n" );
         while(1);
     }
+#endif
 
 #if 0
     if( 0 != led_task_init() )
