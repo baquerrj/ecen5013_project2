@@ -1,5 +1,7 @@
 # Debug Directory
 ./Debug
+./**/Debug/**/*.obj
+./**/Debug/**/*.d
 
 
 # Prerequisites
