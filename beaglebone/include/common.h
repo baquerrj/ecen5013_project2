@@ -133,7 +133,8 @@ typedef struct
  *
  ******************************************************************************/
 typedef struct {
-   char *name;
+//   char *name;
+   char name[ 25 ];
    FILE *fid;
 } file_t;
 

@@ -74,11 +74,11 @@ static void signal_handler( int signo )
  */
 void turn_off_leds( void )
 {
-   led_off( LED0_BRIGHTNESS );
-   led_off( LED1_BRIGHTNESS );
-   led_off( LED2_BRIGHTNESS );
-   led_off( LED3_BRIGHTNESS );
-   return;
+    LED0_OFF;
+    LED1_OFF;
+    LED2_OFF;
+    LED3_OFF;
+    return;
 }
 
 /*!
@@ -89,18 +89,20 @@ int main( int argc, char *argv[] )
 {
    signal( SIGINT, signal_handler );
    static file_t *log;
-   printf( "Number of arguments %d\n", argc );
    if( argc > 1 )
    {
       log = malloc( sizeof( file_t ) );
       log->fid = fopen( argv[1], "w" );
-      log->name = argv[1];
+      snprintf( log->name, sizeof( log->name ),  "%s", argv[1] );
       LOG_INFO( "Opened file %s\n", argv[1] );
    }
    else
    {
-      LOG_ERROR( "Name of log file required!\n" );
-      return 1;
+       log = malloc( sizeof( file_t ) );
+       //sprintf( log->name, "%d,controller.log", getpid() );
+       snprintf( log->name, sizeof( log->name ), "%d,controller.log", getpid() );
+       log->fid = fopen( log->name, "w" );
+       LOG_INFO( "Opened file %s\n", log->name );
    }
 
    LOG_INFO( "Starting Threads!\n" );
