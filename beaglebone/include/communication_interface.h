@@ -23,20 +23,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "common.h"
-#include "nrf_module.h"
 #include "uart.h"
 //#define TIVA_BOARD
 
 #ifdef TIVA_BOARD
 #define TIVA_UART   UART_6
 #endif
-
-typedef enum
-{
-    COMM_UART = 0,
-    COMM_NRF,
-    COMM_MAX
-} communication_type_e;
 
 volatile uint8_t comm_type;
 
@@ -99,28 +91,5 @@ static inline int32_t comm_recv_uart( node_message_t *comm_object )
 }
 
 #endif
-
-/*!
- * @brief   Initialize NRF module to communication with remote node
- */
-int8_t comm_init_nrf( void );
-
-/*!
- * @brief   Deinitializes NRF module
- */
-void comm_deinit_nrf( void );
-
-
-static inline uint8_t comm_recv_nrf( node_message_t *p_comm_object )
-{
-    return nrf_read( (uint8_t*)(p_comm_object), sizeof( node_message_t ) );
-}
-
-static inline uint8_t comm_send_nrf( node_message_t *p_comm_object )
-{
-    return nrf_write( (uint8_t*)(p_comm_object), sizeof( node_message_t ) );
-}
-
-
 
 #endif   /* _COMMUNICATION_INTERFACE_H_ */

@@ -29,7 +29,6 @@
 #include "logger.h"
 #include "node_comm_task.h"
 #include "communication_interface.h"
-#include "nrf_module.h"
 
 #define NODE_COMM_QUEUE "/node_comm_queue"
 
@@ -279,11 +278,6 @@ void* node_comm_task_fn( void *thread_args )
         thread_exit( EXIT_INIT );
     }
 
-//    if( 0 > comm_init_nrf() )
-//    {
-//        LOG_ERROR( "NODE COMM TASK: NRF INIT\n" );
-//        thread_exit( EXIT_INIT );
-//    }
 
     signal( SIGUSR1, sig_handler );
     signal( SIGUSR2, sig_handler );
@@ -316,7 +310,6 @@ void* node_comm_task_fn( void *thread_args )
 
     cycle();
 
-//    comm_deinit_nrf();
     comm_deinit_uart( uart_fd );
     thread_exit( 0 );
     return NULL;

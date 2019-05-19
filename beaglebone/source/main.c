@@ -35,7 +35,6 @@
 #include "watchdog.h"
 #include "led.h"
 
-#include "nrf_module.h"
 #include "node_comm_task.h"
 #include "communication_interface.h"
 
